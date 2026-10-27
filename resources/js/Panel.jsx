@@ -7,6 +7,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Cashiers from './pages/Cashiers';
+import ReceivedPayments from './pages/ReceivedPayments';
+import Devices from './pages/Devices';
 import ComingSoon from './pages/ComingSoon';
 
 export default function Panel() {
@@ -40,12 +42,12 @@ export default function Panel() {
                     >
                         <Route index element={<Home />} />
                         <Route path="cajeros" element={<Cashiers />} />
-                        <Route path="pagos" element={<ComingSoon title="Pagos recibidos" />} />
+                        <Route path="pagos" element={<ReceivedPayments />} />
                         <Route
                             path="verificaciones"
                             element={<ComingSoon title="Verificaciones" />}
                         />
-                        <Route path="dispositivo" element={<ComingSoon title="Dispositivo" />} />
+                        <Route path="dispositivo" element={<Devices />} />
                         <Route
                             path="configuracion"
                             element={<ComingSoon title="Configuración" />}
