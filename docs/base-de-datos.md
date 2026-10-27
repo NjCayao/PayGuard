@@ -23,7 +23,7 @@ erDiagram
 |---|---|---|
 | id | bigint PK | |
 | name | varchar(120) | |
-| owner_whatsapp | varchar(20) | Número del dueño para alertas, formato internacional (+51...) |
+| owner_whatsapp | varchar(20) | Número del dueño para alertas, solo dígitos (ej. 51982226835) |
 | match_window_minutes | smallint | Ventana de comparación, por defecto 10 |
 | recheck_minutes | smallint | Tiempo de nueva revisión si "aún no llega", por defecto 2 |
 | timezone | varchar(40) | Por defecto `America/Lima` |
@@ -33,9 +33,10 @@ erDiagram
 | Columna | Tipo | Notas |
 |---|---|---|
 | id | bigint PK | |
-| business_id | FK businesses | |
+| business_id | FK businesses, obligatorio | 1 negocio = 1 dueño |
 | name, email (único), password | | |
 | timestamps | | |
+El registro crea el negocio y el usuario juntos en una transacción.
 
 ### cashiers — cajeros autorizados (no inician sesión)
 | Columna | Tipo | Notas |
@@ -43,8 +44,8 @@ erDiagram
 | id | bigint PK | |
 | business_id | FK businesses | |
 | name | varchar(80) | |
-| whatsapp | varchar(20) | **Único en todo el sistema**: así PayGuard sabe de qué negocio es cada consulta |
-| is_active | boolean | |
+| whatsapp | varchar(20) | Solo dígitos (ej. 51982226835). **Único en todo el sistema**: así PayGuard sabe de qué negocio es cada consulta |
+| is_active | boolean | Por defecto `true` |
 | timestamps | | |
 
 ### devices — celular con la app que captura los pagos
@@ -56,7 +57,7 @@ erDiagram
 | last_seen_at | datetime null | Último contacto de la app |
 | last_payment_at | datetime null | Última notificación enviada |
 | timestamps | | |
-La app se autentica con token de Sanctum ligado al dispositivo.
+La app se autentica con token de Sanctum ligado al dispositivo: el modelo Device usa HasApiTokens, no el User.
 
 ### received_payments — notificaciones reales de Yape/Plin
 | Columna | Tipo | Notas |
@@ -67,10 +68,10 @@ La app se autentica con token de Sanctum ligado al dispositivo.
 | wallet | enum(`yape`,`plin`) | |
 | amount | decimal(10,2) null | null si no se pudo leer |
 | payer_name | varchar(120) null | |
-| received_at | datetime | Hora de la notificación en el celular |
+| received_at | datetime | Hora de la notificación, guardada en UTC |
 | raw_text | text | Texto original, siempre se guarda |
-| parsed | boolean | Si las reglas lograron leerlo |
-| idempotency_key | varchar(64) **único** | Evita guardar dos veces la misma notificación (reintentos de la app) |
+| parsed | boolean | Si las reglas lograron leerlo; por defecto `false` |
+| idempotency_key | varchar(64) **único** | Lo genera la app; evita guardar dos veces la misma notificación (reintentos) |
 | timestamps | | |
 Índice: `(business_id, amount, received_at)` para la búsqueda rápida.
 
@@ -86,9 +87,13 @@ La app se autentica con token de Sanctum ligado al dispositivo.
 | media_sha256 | char(64) null | Detecta la misma captura reenviada |
 | transcript | text null | Texto de la nota de voz |
 | extracted | json null | Datos leídos por Muse Spark |
-| wallet, amount, payer_name, paid_at, operation_code | | Copia de los datos clave para buscar y mostrar |
-| edit_signals | json null | Señales de posible edición detectadas |
-| status | enum(`processing`,`pending`,`verified`,`not_found`,`mismatch`,`reused`,`error`) | |
+| wallet | enum(`yape`,`plin`) null | Copia de los datos clave para buscar y mostrar |
+| amount | decimal(10,2) null | |
+| payer_name | varchar(120) null | |
+| paid_at | datetime null | Fecha y hora del pago según la captura, en UTC |
+| operation_code | varchar(40) null | |
+| edit_signals | json null | Lista de textos con señales de posible edición |
+| status | enum(`processing`,`pending`,`verified`,`not_found`,`mismatch`,`reused`,`error`) | Por defecto `processing` |
 | reason | varchar(255) null | Motivo en español, el mismo que se responde |
 | received_payment_id | FK received_payments null, **único** | Una notificación real valida una sola captura |
 | recheck_until | datetime null | Hasta cuándo seguir buscando si está `pending` |

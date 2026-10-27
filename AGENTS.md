@@ -1,6 +1,6 @@
 # AGENTS.md — PayGuard
 
-Rules for the coding agent working on this repository. Read `docs/PRD.md`, `docs/arquitectura.md` and `docs/base-de-datos.md` before starting any task.
+Rules for the coding agent working on this repository. Read `docs/PRD.md`, `docs/plan-de-trabajo.md`, `docs/arquitectura.md` and `docs/base-de-datos.md` before starting any task.
 
 ## Project
 PayGuard is a WhatsApp assistant that helps small businesses in Latin America detect fake digital-wallet payments (Yape and Plin). A cashier forwards a payment screenshot or a voice note to PayGuard's WhatsApp number; PayGuard reads it with Meta's models and compares it with the real payment notification captured by an Android companion app.

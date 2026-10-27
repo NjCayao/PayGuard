@@ -55,11 +55,14 @@ flowchart LR
 |---|---|---|
 | `GET /webhooks/whatsapp` | Verificación del webhook por Meta | Token de verificación |
 | `POST /webhooks/whatsapp` | Mensajes entrantes | Firma de Meta |
-| `POST /api/device/login` | La app inicia sesión y registra el dispositivo | Credenciales del dueño |
-| `POST /api/device/payments` | La app envía una notificación | Token Sanctum del dispositivo |
-| `POST /api/device/heartbeat` | La app avisa que sigue activa | Token Sanctum |
-| `/app-api/*` | Datos del panel React | Sesión (Sanctum, mismo dominio) |
-| `/` y `/app/*` | Panel web | Sesión |
+| `POST /api/device/login` | La app inicia sesión y registra el dispositivo (Día 3) | Credenciales del dueño |
+| `POST /api/device/payments` | La app envía una notificación (Día 3) | Token Sanctum del dispositivo |
+| `POST /api/device/heartbeat` | La app avisa que sigue activa (Día 3) | Token Sanctum |
+| `POST /api/panel/register` | Registro del dueño: crea negocio y usuario juntos | Pública |
+| `POST /api/panel/login` | Inicio de sesión del dueño | Pública |
+| `POST /api/panel/logout`, `GET /api/panel/user` | Cierre de sesión y usuario actual | Sesión (Sanctum, mismo dominio) |
+| `/api/panel/cashiers` | Cajeros: listar, crear, editar, activar/desactivar, eliminar | Sesión (Sanctum, mismo dominio) |
+| `/` y `/app/*` | Panel web: una vista Blade que monta React con react-router | Sesión (sin sesión redirige a iniciar sesión) |
 
 ## Estructura del repositorio
 
