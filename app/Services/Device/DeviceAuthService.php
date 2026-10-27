@@ -12,7 +12,7 @@ class DeviceAuthService
      * Authenticate the owner and provision a device for the app.
      * Returns the device and a plain-text token, or null on bad credentials.
      */
-    public function login(string $email, string $password, string $brand, string $model): ?array
+    public function login(string $email, string $password, string $brand, string $model, string $installId): ?array
     {
         $user = User::where('email', $email)->first();
 
@@ -20,10 +20,15 @@ class DeviceAuthService
             return null;
         }
 
-        $device = Device::firstOrCreate([
-            'business_id' => $user->business_id,
-            'name' => mb_substr(trim("{$brand} {$model}"), 0, 80),
-        ]);
+        $device = Device::firstOrCreate(
+            [
+                'business_id' => $user->business_id,
+                'install_id' => $installId,
+            ],
+            [
+                'name' => mb_substr(trim("{$brand} {$model}"), 0, 80),
+            ]
+        );
 
         $device->tokens()->delete();
         $token = $device->createToken('android-app')->plainTextToken;

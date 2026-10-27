@@ -17,6 +17,7 @@ class AuthController extends Controller
             $request->string('password')->toString(),
             $request->string('brand')->toString(),
             $request->string('model')->toString(),
+            $request->string('install_id')->toString(),
         );
 
         if ($result === null) {

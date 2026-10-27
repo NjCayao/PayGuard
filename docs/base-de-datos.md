@@ -55,6 +55,7 @@ El registro crea el negocio y el usuario juntos en una transacción.
 | id | bigint PK | |
 | business_id | FK businesses | |
 | name | varchar(80) | Automático: marca y modelo del celular (ej. "Xiaomi Redmi 12") |
+| install_id | varchar(64) null | UUID de instalación generado por la app; único por negocio |
 | last_seen_at | datetime null | Último contacto de la app |
 | last_payment_at | datetime null | Última notificación enviada |
 | timestamps | | |

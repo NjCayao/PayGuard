@@ -16,6 +16,7 @@ class DeviceFactory extends Factory
         return [
             'business_id' => Business::factory(),
             'name' => fake()->randomElement(['Xiaomi', 'Samsung', 'Motorola']).' '.fake()->bothify('Model ##'),
+            'install_id' => fake()->unique()->uuid(),
             'last_seen_at' => null,
             'last_payment_at' => null,
         ];

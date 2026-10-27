@@ -21,6 +21,7 @@ class DeviceAuthTest extends TestCase
             'password' => 'password',
             'brand' => 'Xiaomi',
             'model' => 'Redmi 12',
+            'install_id' => 'install-1',
         ]);
 
         $response->assertOk();
@@ -36,7 +37,7 @@ class DeviceAuthTest extends TestCase
             ->assertOk();
     }
 
-    public function test_app_login_reuses_device_with_same_name(): void
+    public function test_app_login_reuses_device_with_same_install_id(): void
     {
         $owner = User::factory()->create();
         $payload = [
@@ -44,6 +45,7 @@ class DeviceAuthTest extends TestCase
             'password' => 'password',
             'brand' => 'Xiaomi',
             'model' => 'Redmi 12',
+            'install_id' => 'install-1',
         ];
 
         $first = $this->postJson('/api/device/login', $payload)->assertOk();
@@ -56,6 +58,22 @@ class DeviceAuthTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_same_model_with_other_install_id_creates_another_device(): void
+    {
+        $owner = User::factory()->create();
+        $payload = [
+            'email' => $owner->email,
+            'password' => 'password',
+            'brand' => 'Xiaomi',
+            'model' => 'Redmi 12',
+        ];
+
+        $this->postJson('/api/device/login', [...$payload, 'install_id' => 'install-1'])->assertOk();
+        $this->postJson('/api/device/login', [...$payload, 'install_id' => 'install-2'])->assertOk();
+
+        $this->assertSame(2, Device::where('business_id', $owner->business_id)->count());
+    }
+
     public function test_app_login_rejects_bad_credentials(): void
     {
         $owner = User::factory()->create();
@@ -65,6 +83,7 @@ class DeviceAuthTest extends TestCase
             'password' => 'wrong-password',
             'brand' => 'Xiaomi',
             'model' => 'Redmi 12',
+            'install_id' => 'install-1',
         ])
             ->assertUnauthorized()
             ->assertJsonPath('message', 'El correo o la contraseña no son correctos.');

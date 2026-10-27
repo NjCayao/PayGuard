@@ -18,6 +18,7 @@ class DeviceLoginRequest extends FormRequest
             'password' => ['required', 'string'],
             'brand' => ['required', 'string', 'max:40'],
             'model' => ['required', 'string', 'max:40'],
+            'install_id' => ['required', 'string', 'max:64'],
         ];
     }
 
@@ -29,6 +30,7 @@ class DeviceLoginRequest extends FormRequest
             'password.required' => 'Escribe la contraseña.',
             'brand.required' => 'Falta la marca del celular.',
             'model.required' => 'Falta el modelo del celular.',
+            'install_id.required' => 'Falta el identificador de la instalación.',
         ];
     }
 }

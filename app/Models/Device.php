@@ -15,6 +15,7 @@ class Device extends Authenticatable
     protected $fillable = [
         'business_id',
         'name',
+        'install_id',
         'last_seen_at',
         'last_payment_at',
     ];
