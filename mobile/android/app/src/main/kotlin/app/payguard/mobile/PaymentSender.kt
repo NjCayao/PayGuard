@@ -58,10 +58,9 @@ object PaymentSender {
             }
         }
 
-        if (sent > 0 || !authFailed) {
-            setAuthFailed(app, authFailed)
-        }
-        if (sent > 0 && !authFailed) {
+        if (authFailed) {
+            setAuthFailed(app, true)
+        } else if (sent > 0) {
             setAuthFailed(app, false)
         }
 

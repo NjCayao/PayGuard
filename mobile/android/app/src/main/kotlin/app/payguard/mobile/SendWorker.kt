@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 class SendWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        setForeground(foregroundInfo())
+        setForeground(getForegroundInfo())
         val result = PaymentSender.sendPending(applicationContext)
         PaymentSender.sendHeartbeat(applicationContext)
         return if (result.authFailed) {
@@ -36,7 +36,7 @@ class SendWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
     override suspend fun getForegroundInfo(): ForegroundInfo {
         val manager = applicationContext.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Envío de pagos", NotificationManager.IMPORTANCE_MIN),
+            NotificationChannel(CHANNEL_ID, "Enviando pagos a PayGuard", NotificationManager.IMPORTANCE_MIN),
         )
         val notification = Notification.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
