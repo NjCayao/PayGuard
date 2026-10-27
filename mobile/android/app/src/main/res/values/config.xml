@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Keep in sync with AppConfig.defaultBaseUrl in lib/core/config.dart. -->
+    <string name="default_api_url">https://payguard.micaleth.com</string>
+
+    <!-- Only these packages are read. Anything else is ignored on the phone. -->
+    <string-array name="watched_packages">
+        <item>com.bcp.innovacxion.yapeapp</item>
+    </string-array>
+</resources>
