@@ -24,6 +24,7 @@ erDiagram
 | id | bigint PK | |
 | name | varchar(120) | |
 | owner_whatsapp | varchar(20) | Número del dueño para alertas, solo dígitos (ej. 51982226835) |
+| yape_holder_name | varchar(120) null | Nombre del titular como aparece en Yape; el destinatario de la captura debe coincidir |
 | match_window_minutes | smallint | Ventana de comparación, por defecto 10 |
 | recheck_minutes | smallint | Tiempo de nueva revisión si "aún no llega", por defecto 2 |
 | timezone | varchar(40) | Por defecto `America/Lima` |
@@ -53,7 +54,7 @@ El registro crea el negocio y el usuario juntos en una transacción.
 |---|---|---|
 | id | bigint PK | |
 | business_id | FK businesses | |
-| name | varchar(80) | Ej.: "Celular de caja" |
+| name | varchar(80) | Automático: marca y modelo del celular (ej. "Xiaomi Redmi 12") |
 | last_seen_at | datetime null | Último contacto de la app |
 | last_payment_at | datetime null | Última notificación enviada |
 | timestamps | | |
@@ -65,9 +66,12 @@ La app se autentica con token de Sanctum ligado al dispositivo: el modelo Device
 | id | bigint PK | |
 | business_id | FK businesses | |
 | device_id | FK devices | |
-| wallet | enum(`yape`,`plin`) | |
+| wallet | enum(`yape`,`plin`) | Solo `yape` por ahora |
+| source_package | varchar(100) | Paquete Android que envió la notificación |
 | amount | decimal(10,2) null | null si no se pudo leer |
 | payer_name | varchar(120) null | |
+| security_code | char(3) null | Código de Yape, null si la notificación no lo trae |
+| operation_code | varchar(40) null | null si la notificación no lo trae |
 | received_at | datetime | Hora de la notificación, guardada en UTC |
 | raw_text | text | Texto original, siempre se guarda |
 | parsed | boolean | Si las reglas lograron leerlo; por defecto `false` |
@@ -90,6 +94,7 @@ La app se autentica con token de Sanctum ligado al dispositivo: el modelo Device
 | wallet | enum(`yape`,`plin`) null | Copia de los datos clave para buscar y mostrar |
 | amount | decimal(10,2) null | |
 | payer_name | varchar(120) null | |
+| security_code | char(3) null | Código de Yape leído de la captura |
 | paid_at | datetime null | Fecha y hora del pago según la captura, en UTC |
 | operation_code | varchar(40) null | |
 | edit_signals | json null | Lista de textos con señales de posible edición |
@@ -105,8 +110,8 @@ La app se autentica con token de Sanctum ligado al dispositivo: el modelo Device
 
 ## Reglas de verificación (resumen)
 
-1. Buscar en `received_payments` del mismo negocio: misma billetera, **mismo monto**, `received_at` dentro de ±`match_window_minutes` de `paid_at`, y **sin** verificación asociada.
-2. Si hay varias, elegir la de nombre más parecido y hora más cercana.
+1. Buscar en `received_payments` del mismo negocio: misma billetera, **mismo monto**, `received_at` dentro de ±`match_window_minutes` de `paid_at`, y **sin** verificación asociada. El nombre de quien paga no se compara: la captura muestra a quién se pagó, no quién pagó.
+2. Si ambos tienen código de seguridad, **debe coincidir**; es la prueba más fuerte. El destinatario de la captura debe ser igual a `yape_holder_name` del negocio. Si hay varias candidatas, elegir la de hora más cercana.
 3. Si la imagen (`media_sha256`) o el número de operación ya se usaron en una verificación aprobada → `reused`.
 4. Si no hay coincidencia todavía y la captura es reciente → `pending` y volver a buscar hasta `recheck_until`.
 5. Si hay un pago parecido pero el monto o el nombre no cuadran → `mismatch` con el motivo.

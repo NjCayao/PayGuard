@@ -1,6 +1,6 @@
 # PayGuard — PRD (Documento de requisitos del producto)
 
-**Versión:** 1.0 · **Fecha:** 26 oct. 2026 · **Autor:** Nilson Cayao
+**Versión:** 1.1 · **Fecha:** 27 oct. 2026 · **Autor:** Nilson Cayao
 **Evento:** Meta Global AI Developer Hackathon — Track Indie Developer · Tema "Build for Your World"
 **Construido desde cero durante el hackathon (26 oct. – 4 nov. 2026).**
 
@@ -8,7 +8,7 @@
 
 ## 1. Resumen
 
-PayGuard es un asistente de WhatsApp que protege a los pequeños negocios de Latinoamérica de los **pagos falsos con billeteras digitales** (Yape y Plin en esta versión).
+PayGuard es un asistente de WhatsApp que protege a los pequeños negocios de Latinoamérica de los **pagos falsos con billeteras digitales** (solo Yape en esta versión; Plin queda preparado para después).
 
 El cajero reenvía a PayGuard la captura que le muestra el cliente (o le manda una nota de voz) y en segundos recibe la respuesta: **pago real** o **no coincide**, con el motivo. PayGuard no "adivina" mirando la imagen: **compara los datos de la captura con la notificación real** que llegó al celular del negocio, capturada por una app Android propia.
 
@@ -29,13 +29,13 @@ El cajero reenvía a PayGuard la captura que le muestra el cliente (o le manda u
 
 ## 4. Cómo funciona (flujo principal)
 
-1. **La app Android** (instalada en el celular del negocio que recibe los pagos) lee cada notificación de Yape o Plin y la envía al servidor: billetera, monto, nombre de quien pagó y hora.
+1. **La app Android** (instalada en el celular del negocio que recibe los pagos) lee cada notificación de Yape y la envía al servidor: billetera, monto, nombre de quien pagó, código de seguridad y hora.
 2. **El cliente paga** y muestra o envía su captura al cajero.
 3. **El cajero reenvía la captura** al WhatsApp de PayGuard (o envía un audio: *"¿llegó un Yape de 50 soles de Juan?"*).
 4. **PayGuard identifica el negocio** por el número del cajero (solo responde a números autorizados).
-5. **Muse Spark lee la captura** y devuelve en JSON: billetera, monto, nombre, fecha y hora, número de operación y señales de posible edición.
+5. **Muse Spark lee la captura** y devuelve en JSON: billetera, monto, nombre del destinatario, fecha y hora, número de operación, código de seguridad y señales de posible edición.
    Si es audio, **Muse Voice Transcribe** lo convierte en texto y Muse Spark extrae la consulta.
-6. **PayGuard busca la notificación real** que coincida: mismo monto, nombre parecido y hora cercana (ventana configurable, por defecto ±10 minutos), que no haya sido usada antes.
+6. **PayGuard busca la notificación real** que coincida. La captura muestra a quién se pagó, no quién pagó, así que el nombre de quien paga no se compara. Se compara: código de seguridad (si ambos lo tienen, debe coincidir; es la prueba más fuerte), mismo monto, hora cercana (ventana configurable, por defecto ±10 minutos), destinatario igual al titular Yape del negocio y número de operación no usado antes.
 7. **Responde al cajero por WhatsApp** en lenguaje simple:
    - ✅ **Pago verificado:** *"Llegó S/ 50,00 de Juan P. por Yape a las 3:15 p. m."*
    - ⏳ **Aún no llega:** no hay notificación todavía; PayGuard vuelve a revisar durante 2 minutos y avisa el resultado.
@@ -55,7 +55,7 @@ El cajero reenvía a PayGuard la captura que le muestra el cliente (o le manda u
 
 ### 5.2 App Android (Flutter)
 - Inicio de sesión con la cuenta del dueño.
-- Permiso para leer notificaciones (solo de Yape y Plin).
+- Permiso para leer notificaciones (solo de Yape).
 - Envío inmediato de cada notificación al servidor, con reintento si no hay internet.
 - Pantalla de estado: conectada o no y últimos pagos enviados.
 
@@ -96,7 +96,7 @@ El cajero reenvía a PayGuard la captura que le muestra el cliente (o le manda u
 ## 8. Requisitos importantes
 
 - **Seguridad:** verificar la firma de cada mensaje que llega de WhatsApp; la app y el panel usan tokens; llaves solo en el `.env` (nunca en el repo).
-- **Privacidad:** solo se guardan notificaciones de Yape y Plin; las demás se ignoran en el propio celular.
+- **Privacidad:** solo se guardan notificaciones de Yape; las demás se ignoran en el propio celular.
 - **Velocidad:** respuesta al cajero en menos de 10 segundos en el caso normal.
 - **Anti-reúso:** una notificación real solo puede validar una captura; si alguien reenvía la misma captura, se marca como sospechosa.
 - **Sin marcas ajenas:** no se usan logos ni imágenes oficiales de Yape o Plin.
