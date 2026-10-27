@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../core/strings/strings.dart';
+
 class ApiException implements Exception {
   ApiException(this.message, {this.statusCode});
 
@@ -64,7 +66,7 @@ class ApiClient {
     final Object? token = data['token'];
     if (token is! String || device is! Map<String, dynamic>) {
       throw ApiException(
-        'Respuesta inesperada del servidor.',
+        Strings.unexpectedResponse,
         statusCode: response.statusCode,
       );
     }
@@ -116,9 +118,9 @@ class ApiClient {
           )
           .timeout(timeout);
     } on TimeoutException {
-      throw ApiException('Sin conexión al servidor.');
+      throw ApiException(Strings.noConnection);
     } on http.ClientException {
-      throw ApiException('Sin conexión al servidor.');
+      throw ApiException(Strings.noConnection);
     }
   }
 
@@ -128,7 +130,7 @@ class ApiClient {
     final Object? data = decoded['data'];
     if (data is! Map<String, dynamic>) {
       throw ApiException(
-        'Respuesta inesperada del servidor.',
+        Strings.unexpectedResponse,
         statusCode: response.statusCode,
       );
     }
@@ -146,6 +148,6 @@ class ApiClient {
     } on FormatException {
       // Fall through to the generic message below.
     }
-    return 'Algo salió mal. Inténtalo de nuevo.';
+    return Strings.genericError;
   }
 }

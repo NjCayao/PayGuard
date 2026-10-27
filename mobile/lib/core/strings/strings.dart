@@ -12,7 +12,6 @@ class Strings {
   static const String passwordRequired = 'Escribe tu contraseña.';
   static const String serverLabel = 'Dirección del servidor';
   static const String serverInvalid = 'Escribe una dirección válida (http:// o https://).';
-  static const String serverReset = 'Volver a la dirección normal';
 
   static const String statusTitle = 'Estado';
   static const String statusReady = 'Lista para recibir pagos.';
@@ -59,6 +58,6 @@ class Strings {
 
   static const String genericError = 'Algo salió mal. Inténtalo de nuevo.';
   static const String noConnection = 'Sin conexión al servidor. Revisa tu internet.';
-  static const String loading = 'Cargando...';
+  static const String unexpectedResponse = 'Respuesta inesperada del servidor.';
   static const String retry = 'Reintentar';
 }

@@ -46,7 +46,7 @@ class ChecklistItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: AppTextStyles.subtitle),
-                    const SizedBox(width: AppSpacing.xs),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(description, style: AppTextStyles.muted),
                   ],
                 ),
