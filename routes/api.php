@@ -1,7 +1,12 @@
 <?php
 
+use App\Http\Controllers\Device\AuthController as DeviceAuthController;
+use App\Http\Controllers\Device\HeartbeatController;
+use App\Http\Controllers\Device\PaymentController;
 use App\Http\Controllers\Panel\AuthController;
 use App\Http\Controllers\Panel\CashierController;
+use App\Http\Controllers\Panel\DeviceController as PanelDeviceController;
+use App\Http\Controllers\Panel\ReceivedPaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('panel')->name('panel.')->group(function () {
@@ -18,7 +23,22 @@ Route::prefix('panel')->name('panel.')->group(function () {
         Route::patch('/cashiers/{cashier}/activate', [CashierController::class, 'activate'])->name('cashiers.activate');
         Route::patch('/cashiers/{cashier}/deactivate', [CashierController::class, 'deactivate'])->name('cashiers.deactivate');
         Route::delete('/cashiers/{cashier}', [CashierController::class, 'destroy'])->name('cashiers.destroy');
+
+        Route::get('/received-payments', [ReceivedPaymentController::class, 'index'])->name('received-payments.index');
+
+        Route::get('/devices', [PanelDeviceController::class, 'index'])->name('devices.index');
+        Route::post('/devices/{device}/unlink', [PanelDeviceController::class, 'unlink'])->name('devices.unlink');
     });
 });
 
-// Reserved for the Android companion app (Day 3): /device/login, /device/payments, /device/heartbeat.
+Route::prefix('device')->name('device.')->group(function () {
+    Route::post('/login', [DeviceAuthController::class, 'login'])
+        ->middleware('throttle:'.config('payguard.device.login_throttle'))
+        ->name('login');
+
+    Route::middleware(['auth:sanctum', 'throttle:'.config('payguard.device.api_throttle')])->group(function () {
+        Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
+        Route::post('/heartbeat', [HeartbeatController::class, 'store'])->name('heartbeat.store');
+        Route::post('/logout', [DeviceAuthController::class, 'logout'])->name('logout');
+    });
+});
