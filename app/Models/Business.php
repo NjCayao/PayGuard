@@ -13,6 +13,7 @@ class Business extends Model
     protected $fillable = [
         'name',
         'owner_whatsapp',
+        'yape_holder_name',
         'match_window_minutes',
         'recheck_minutes',
         'timezone',

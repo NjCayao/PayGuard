@@ -4,11 +4,11 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
-class Device extends Model
+class Device extends Authenticatable
 {
     use BelongsToBusiness, HasApiTokens, HasFactory;
 
@@ -27,5 +27,13 @@ class Device extends Model
     public function receivedPayments(): HasMany
     {
         return $this->hasMany(ReceivedPayment::class);
+    }
+
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at !== null
+            && $this->last_seen_at->greaterThan(
+                now()->subMinutes(config('payguard.device.offline_minutes'))
+            );
     }
 }

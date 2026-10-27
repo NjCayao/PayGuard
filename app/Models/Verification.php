@@ -23,6 +23,7 @@ class Verification extends Model
         'wallet',
         'amount',
         'payer_name',
+        'security_code',
         'paid_at',
         'operation_code',
         'edit_signals',

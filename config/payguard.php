@@ -47,4 +47,69 @@ return [
 
     'cashiers_per_page' => 20,
 
+    'received_payments_per_page' => 20,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Companion app devices
+    |--------------------------------------------------------------------------
+    |
+    | offline_minutes: a device with no heartbeat for longer than this is
+    | shown as disconnected in the panel. The throttles are "attempts,minutes"
+    | pairs for the device API rate limiter.
+    |
+    */
+
+    'device' => [
+        'offline_minutes' => (int) env('PAYGUARD_DEVICE_OFFLINE_MINUTES', 15),
+        'login_throttle' => env('PAYGUARD_DEVICE_LOGIN_THROTTLE', '10,1'),
+        'api_throttle' => env('PAYGUARD_DEVICE_API_THROTTLE', '120,1'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification reading
+    |--------------------------------------------------------------------------
+    |
+    | packages maps each Android package the server accepts to its wallet.
+    | Only Yape is enabled for now; Plin stays in the enum for later.
+    | The yape patterns are the tolerant reading rules: ignore wins over
+    | everything, then a received marker is required, then each field is
+    | extracted with the first pattern that matches.
+    |
+    */
+
+    'notifications' => [
+        'packages' => [
+            'com.bcp.innovacxion.yapeapp' => 'yape',
+        ],
+
+        'yape' => [
+            'ignore_patterns' => [
+                '/\byapeaste\b/iu',
+                '/promoci[óo]n/iu',
+                '/\bpromo\b/iu',
+                '/descuento/iu',
+                '/sorteo/iu',
+                '/\bcompra\b/iu',
+            ],
+            'received_markers' => [
+                '/te envi[óo] un pago/iu',
+                '/recibiste/iu',
+            ],
+            'payment_pattern' => '/^Yape!\s*(?P<payer>.+?)\s*te envi[óo] un pago por\s*(?P<rest>.+)$/ius',
+            'amount_patterns' => [
+                '/S\/\.?\s*(?P<amount>[\d.,]+)/u',
+                '/(?P<amount>[\d.,]+)\s*soles/iu',
+            ],
+            'security_code_patterns' => [
+                '/(?:c[óo]digo|c[óo]d\.?)\s*(?:de seguridad)?\s*[:#-]?\s*(?<!\d)(?P<code>\d{3})(?!\d)/iu',
+            ],
+            'operation_patterns' => [
+                '/operaci[óo]n\s*(?:n[°º.]*)?\s*[:#-]?\s*(?P<code>[A-Za-z0-9-]{4,40})/iu',
+                '/(?:n[úu]mero|nro\.?)\s*de\s*operaci[óo]n\s*[:#-]?\s*(?P<code>[A-Za-z0-9-]{4,40})/iu',
+            ],
+        ],
+    ],
+
 ];
