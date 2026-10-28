@@ -41,10 +41,10 @@ flowchart LR
 3. El trabajo en cola:
    - Identifica al cajero por su número. Si no está autorizado, responde que no está registrado y termina.
    - Descarga la imagen o el audio desde WhatsApp y lo guarda en `storage` privado.
-   - **Audio:** Muse Voice Transcribe → texto.
+   - **Audio:** ffmpeg lo convierte a WAV mono y Muse Voice Transcribe (`POST /v1/asr/transcribe`, no OpenAI) → texto en `verifications.transcript`.
    - **Imagen:** Muse Spark lee la captura y devuelve JSON con esquema fijo.
-   - **Texto o audio transcrito:** Muse Spark extrae billetera, monto y nombre de la consulta.
-   - El **motor de verificación** compara con los pagos recibidos y decide el resultado. Si ningún dispositivo dio señal en los últimos minutos (configurable) y no hay candidato, no responde "no encontrado": avisa que el celular no está conectado y alerta al dueño.
+   - **Texto o audio transcrito:** prefiltro de reglas y luego Muse Spark extrae billetera, monto y nombre de la consulta. Sin monto o sin intención de pago → saludo (`text_help`, fuera del panel).
+   - El **motor de verificación** compara con los pagos recibidos y decide el resultado. Sin captura solo mira los últimos minutos (configurable), monto exacto, pagos sin reclamar y nombre por prefijo. Si ningún dispositivo dio señal en los últimos minutos (configurable) y no hay candidato, no responde "no encontrado": avisa que el celular no está conectado y alerta al dueño.
    - Muse Spark redacta una respuesta corta en español a partir del resultado y el motivo.
    - Se envía la respuesta al cajero y, si es sospechoso, la alerta al dueño.
 4. Si queda `pending`, el propio trabajo se vuelve a despachar con espera de 20 segundos hasta `recheck_until` y avisa el resultado final. Aparte, el scheduler cierra cada hora las verificaciones atascadas en `processing`.
@@ -65,7 +65,7 @@ flowchart LR
 | `POST /api/panel/logout`, `GET /api/panel/user` | Cierre de sesión y usuario actual | Sesión (Sanctum, mismo dominio) |
 | `/api/panel/cashiers` | Cajeros: listar, crear, editar, activar/desactivar, eliminar | Sesión (Sanctum, mismo dominio) |
 | `GET /api/panel/received-payments` | Pagos recibidos: listar con filtro por fecha | Sesión (Sanctum, mismo dominio) |
-| `GET /api/panel/verifications`, `GET .../{id}`, `GET .../{id}/image` | Verificaciones: listar con filtros, detalle e imagen privada | Sesión (Sanctum, mismo dominio) |
+| `GET /api/panel/verifications`, `GET .../{id}`, `GET .../{id}/image`, `GET .../{id}/audio` | Verificaciones: listar con filtros, detalle, imagen y audio privados | Sesión (Sanctum, mismo dominio) |
 | `GET /api/panel/verifications/export` | Verificaciones: exportar en Excel o PDF por rango de fechas | Sesión (Sanctum, mismo dominio) |
 | `GET /api/panel/owner-alerts` | Alertas al dueño: listar con filtros y estado de entrega | Sesión (Sanctum, mismo dominio) |
 | `GET/PUT /api/panel/settings` | Configuración del negocio | Sesión (Sanctum, mismo dominio) |
@@ -79,16 +79,16 @@ flowchart LR
 payguard/
 ├── app/
 │   ├── Http/Controllers/        # Controladores delgados
-│   ├── Jobs/                    # ProcessIncomingMessage, AnalyzeScreenshotVerification, RecheckPendingVerification, UpdateOwnerAlertStatus
+│   ├── Jobs/                    # ProcessIncomingMessage, AnalyzeScreenshotVerification, AnalyzeQueryVerification, RecheckPendingVerification, UpdateOwnerAlertStatus
 │   ├── Console/Commands/        # ExpireStuckVerifications, SimulatePayment, ReparsePayments
 │   ├── Services/
-│   │   ├── Meta/                # MetaModelClient, ScreenshotReader, ScreenshotData
+│   │   ├── Meta/                # MetaModelClient, ScreenshotReader, ScreenshotData, VoiceTranscriber, PaymentQueryParser, PaymentQueryData
 │   │   ├── WhatsApp/            # WhatsAppClient, SignatureVerifier, MediaStore, OwnerAlerter
 │   │   ├── Device/              # DeviceAuthService, DevicePresence
 │   │   ├── Panel/               # CashierService, DaySummaryService, VerificationExporter, VerificationListQuery
 │   │   ├── Payments/            # NotificationParser, YapeNotificationParser, ReceivedPaymentService
-│   │   ├── Verification/        # VerificationService, PaymentMatcher, DuplicateChecker, CashierReplies
-│   │   └── Support/             # Amounts
+│   │   ├── Verification/        # VerificationService, PaymentMatcher, TextQueryMatcher, DuplicateChecker, CashierReplies
+│   │   └── Support/             # Amounts, AudioConverter
 │   └── Models/
 ├── config/payguard.php          # Valores configurables (ventanas, modelos)
 ├── database/migrations/
