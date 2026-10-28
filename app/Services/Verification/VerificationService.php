@@ -133,11 +133,7 @@ class VerificationService
 
             $verification->update(['reason' => $rendered['reason'], 'reason_code' => 'already_reviewing']);
 
-            $this->whatsapp->sendText(
-                $verification->cashier->whatsapp,
-                $rendered['reply'],
-                $verification->wa_message_id
-            );
+            $this->sendReply($verification, $rendered['reply']);
 
             $this->dispatchRecheck($verification);
 
@@ -172,11 +168,7 @@ class VerificationService
                 'reason_code' => $offline ? 'offline' : 'pending',
             ]);
 
-            $this->whatsapp->sendText(
-                $verification->cashier->whatsapp,
-                $rendered['reply'],
-                $verification->wa_message_id
-            );
+            $this->sendReply($verification, $rendered['reply']);
 
             if ($offline) {
                 $this->alerter->sendOfflineAlert($verification);
@@ -228,11 +220,7 @@ class VerificationService
             'received_payment_id' => $outcome->receivedPaymentId,
         ]);
 
-        $this->whatsapp->sendText(
-            $verification->cashier->whatsapp,
-            $rendered['reply'],
-            $verification->wa_message_id
-        );
+        $this->sendReply($verification, $rendered['reply']);
 
         if ($outcome->reasonCode === 'offline') {
             $this->alerter->sendOfflineAlert($verification);
@@ -266,6 +254,20 @@ class VerificationService
     private function isClaimed(ReceivedPayment $payment): bool
     {
         return $payment->verification()->exists();
+    }
+
+    private function sendReply(Verification $verification, string $reply): void
+    {
+        // The demo account never sends real WhatsApp messages.
+        if ($verification->business->isDemo()) {
+            return;
+        }
+
+        $this->whatsapp->sendText(
+            $verification->cashier->whatsapp,
+            $reply,
+            $verification->wa_message_id
+        );
     }
 
     private function dispatchRecheck(Verification $verification): void

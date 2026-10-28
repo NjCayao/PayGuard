@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { isDemo } from '../utils/demo';
 
 const links = [
     { to: '/app', label: 'Inicio', end: true },
@@ -9,6 +10,7 @@ const links = [
     { to: '/app/dispositivo', label: 'Dispositivo' },
     { to: '/app/alertas', label: 'Alertas' },
     { to: '/app/configuracion', label: 'Configuración' },
+    { to: '/app/mi-cuenta', label: 'Mi cuenta' },
 ];
 
 function navClass({ isActive }) {
@@ -72,6 +74,12 @@ export default function Layout() {
                     </button>
                 </div>
                 <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+                    {isDemo(user) && (
+                        <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            Estás en la cuenta de demostración con datos de ejemplo.
+                            Los cambios están desactivados.
+                        </p>
+                    )}
                     {user?.business && !user.business.yape_holder_name && (
                         <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                             Configura el titular de tu Yape para verificar el destinatario

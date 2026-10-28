@@ -18,6 +18,7 @@ class BusinessFactory extends Factory
             'match_window_minutes' => 10,
             'recheck_minutes' => 2,
             'timezone' => 'America/Lima',
+            'is_demo' => false,
         ];
     }
 }

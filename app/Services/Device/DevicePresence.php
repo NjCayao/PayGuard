@@ -9,6 +9,12 @@ class DevicePresence
 {
     public function online(Business $business): bool
     {
+        // The demo device never sends a heartbeat, but the demo must behave
+        // as a connected business so judges can test verifications.
+        if ($business->isDemo()) {
+            return true;
+        }
+
         return $business->devices()
             ->where('last_seen_at', '>', now()->subMinutes(
                 (int) config('payguard.device.offline_minutes')

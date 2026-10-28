@@ -56,7 +56,7 @@ class AnalyzeScreenshotVerification implements ShouldQueue
     public function failed(Throwable $exception): void
     {
         try {
-            $verification = Verification::with('cashier')->find($this->verificationId);
+            $verification = Verification::with(['business', 'cashier'])->find($this->verificationId);
 
             if ($verification === null || $verification->status !== 'processing') {
                 return;
@@ -68,7 +68,7 @@ class AnalyzeScreenshotVerification implements ShouldQueue
                 'reason_code' => 'error',
             ]);
 
-            if ($verification->cashier !== null) {
+            if ($verification->cashier !== null && ! $verification->business->isDemo()) {
                 app(WhatsAppClient::class)->sendText(
                     $verification->cashier->whatsapp,
                     (string) config('payguard.whatsapp.replies.error'),

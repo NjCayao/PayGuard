@@ -32,6 +32,10 @@ class Device extends Authenticatable
 
     public function isOnline(): bool
     {
+        if ($this->business !== null && $this->business->isDemo()) {
+            return true;
+        }
+
         return $this->last_seen_at !== null
             && $this->last_seen_at->greaterThan(
                 now()->subMinutes(config('payguard.device.offline_minutes'))

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, errorMessage, fieldErrors } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import DemoNotice from '../components/DemoNotice';
 import {
     alertErrorClass,
     alertOkClass,
@@ -10,13 +11,14 @@ import {
     labelClass,
     primaryButtonClass,
 } from '../components/ui';
+import { DEMO_BLOCKED_MESSAGE, isDemo } from '../utils/demo';
 
 export default function Settings() {
-    const { refreshUser } = useAuth();
+    const { user, refreshUser } = useAuth();
+    const demo = isDemo(user);
     const [form, setForm] = useState({
         name: '',
         yape_holder_name: '',
-        owner_whatsapp: '',
         match_window_minutes: 10,
         recheck_minutes: 2,
     });
@@ -33,7 +35,6 @@ export default function Settings() {
                 setForm({
                     name: business.name ?? '',
                     yape_holder_name: business.yape_holder_name ?? '',
-                    owner_whatsapp: business.owner_whatsapp ?? '',
                     match_window_minutes: business.match_window_minutes ?? 10,
                     recheck_minutes: business.recheck_minutes ?? 2,
                 });
@@ -86,6 +87,8 @@ export default function Settings() {
         <div>
             <h1 className="text-xl font-bold text-slate-900">Configuración</h1>
 
+            {demo && <DemoNotice />}
+
             {notice !== '' && <p className={`${alertOkClass} mt-4`}>{notice}</p>}
             {errors.form && <p className={`${alertErrorClass} mt-4`}>{errors.form[0]}</p>}
 
@@ -98,6 +101,8 @@ export default function Settings() {
                         id="settings-name"
                         type="text"
                         className={fieldClass}
+                        disabled={demo}
+                        title={demo ? DEMO_BLOCKED_MESSAGE : undefined}
                         value={form.name}
                         onChange={(event) => update('name', event.target.value)}
                     />
@@ -113,6 +118,8 @@ export default function Settings() {
                         type="text"
                         className={fieldClass}
                         placeholder="Como aparece en tu Yape"
+                        disabled={demo}
+                        title={demo ? DEMO_BLOCKED_MESSAGE : undefined}
                         value={form.yape_holder_name}
                         onChange={(event) => update('yape_holder_name', event.target.value)}
                     />
@@ -120,21 +127,6 @@ export default function Settings() {
                         El destinatario de cada captura debe coincidir con este nombre.
                     </p>
                     <FieldError name="yape_holder_name" />
-                </div>
-
-                <div>
-                    <label htmlFor="settings-whatsapp" className={labelClass}>
-                        WhatsApp del dueño (alertas)
-                    </label>
-                    <input
-                        id="settings-whatsapp"
-                        type="text"
-                        className={fieldClass}
-                        placeholder="51999888777"
-                        value={form.owner_whatsapp}
-                        onChange={(event) => update('owner_whatsapp', event.target.value)}
-                    />
-                    <FieldError name="owner_whatsapp" />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -148,6 +140,8 @@ export default function Settings() {
                             min="1"
                             max="60"
                             className={fieldClass}
+                            disabled={demo}
+                            title={demo ? DEMO_BLOCKED_MESSAGE : undefined}
                             value={form.match_window_minutes}
                             onChange={(event) => update('match_window_minutes', event.target.value)}
                         />
@@ -163,6 +157,8 @@ export default function Settings() {
                             min="1"
                             max="10"
                             className={fieldClass}
+                            disabled={demo}
+                            title={demo ? DEMO_BLOCKED_MESSAGE : undefined}
                             value={form.recheck_minutes}
                             onChange={(event) => update('recheck_minutes', event.target.value)}
                         />
@@ -170,7 +166,12 @@ export default function Settings() {
                     </div>
                 </div>
 
-                <button type="submit" disabled={sending} className={primaryButtonClass}>
+                <button
+                    type="submit"
+                    disabled={demo || sending}
+                    title={demo ? DEMO_BLOCKED_MESSAGE : undefined}
+                    className={primaryButtonClass}
+                >
                     {sending ? 'Guardando...' : 'Guardar'}
                 </button>
             </form>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import DemoNotice from '../components/DemoNotice';
+import { DEMO_BLOCKED_MESSAGE, isDemo } from '../utils/demo';
 import {
     alertErrorClass,
     alertOkClass,
@@ -11,6 +13,7 @@ import { formatDateTime } from '../utils/format';
 
 export default function Devices() {
     const { user } = useAuth();
+    const demo = isDemo(user);
     const [devices, setDevices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [notice, setNotice] = useState('');
@@ -59,6 +62,8 @@ export default function Devices() {
         <div>
             <h1 className="text-xl font-bold text-slate-900">Dispositivo</h1>
 
+            {demo && <DemoNotice />}
+
             {notice !== '' && <p className={`${alertOkClass} mt-4`}>{notice}</p>}
             {error !== '' && <p className={`${alertErrorClass} mt-4`}>{error}</p>}
 
@@ -106,7 +111,8 @@ export default function Devices() {
                                     )}
                                     <button
                                         type="button"
-                                        disabled={workingId === device.id}
+                                        disabled={demo || workingId === device.id}
+                                        title={demo ? DEMO_BLOCKED_MESSAGE : undefined}
                                         onClick={() => unlink(device)}
                                         className={dangerButtonClass}
                                     >

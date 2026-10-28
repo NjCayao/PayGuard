@@ -4,6 +4,7 @@ namespace App\Services\WhatsApp;
 
 use App\Models\OwnerAlert;
 use App\Models\Verification;
+use App\Services\Demo\DemoProtection;
 use App\Services\Verification\CashierReplies;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -49,6 +50,13 @@ class OwnerAlerter
             'reason' => mb_substr($reason, 0, 255),
             'status' => 'queued',
         ]);
+
+        // The demo account registers the alert in the panel but never sends it.
+        if ($business->isDemo()) {
+            $alert->update(['status' => 'failed', 'error' => DemoProtection::message()]);
+
+            return $alert;
+        }
 
         try {
             $waMessageId = $this->client->sendTemplate($business->owner_whatsapp, [

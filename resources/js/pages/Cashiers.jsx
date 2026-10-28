@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api, errorMessage, fieldErrors } from '../api/client';
+import { useAuth } from '../auth/AuthContext';
+import DemoNotice from '../components/DemoNotice';
+import { DEMO_BLOCKED_MESSAGE, isDemo } from '../utils/demo';
 import {
     alertErrorClass,
     alertOkClass,
@@ -15,6 +18,9 @@ import {
 const emptyForm = { name: '', whatsapp: '' };
 
 export default function Cashiers() {
+    const { user } = useAuth();
+    const demo = isDemo(user);
+    const blockedTitle = demo ? DEMO_BLOCKED_MESSAGE : undefined;
     const [cashiers, setCashiers] = useState([]);
     const [page, setPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
@@ -123,10 +129,18 @@ export default function Cashiers() {
         <div>
             <div className="flex items-center justify-between">
                 <h1 className="text-xl font-bold text-slate-900">Cajeros</h1>
-                <button type="button" onClick={openCreate} className={primaryButtonClass}>
+                <button
+                    type="button"
+                    onClick={openCreate}
+                    disabled={demo}
+                    title={blockedTitle}
+                    className={primaryButtonClass}
+                >
                     Agregar cajero
                 </button>
             </div>
+
+            {demo && <DemoNotice />}
 
             {notice !== '' && <p className={`${alertOkClass} mt-4`}>{notice}</p>}
             {formError !== '' && !showForm && (
@@ -215,6 +229,8 @@ export default function Cashiers() {
                                     <button
                                         type="button"
                                         onClick={() => openEdit(cashier)}
+                                        disabled={demo}
+                                        title={blockedTitle}
                                         className={secondaryButtonClass}
                                     >
                                         Editar
@@ -222,6 +238,8 @@ export default function Cashiers() {
                                     <button
                                         type="button"
                                         onClick={() => toggleActive(cashier)}
+                                        disabled={demo}
+                                        title={blockedTitle}
                                         className={secondaryButtonClass}
                                     >
                                         {cashier.is_active ? 'Desactivar' : 'Activar'}
@@ -229,6 +247,8 @@ export default function Cashiers() {
                                     <button
                                         type="button"
                                         onClick={() => remove(cashier)}
+                                        disabled={demo}
+                                        title={blockedTitle}
                                         className={dangerButtonClass}
                                     >
                                         Eliminar

@@ -17,12 +17,19 @@ class Business extends Model
         'match_window_minutes',
         'recheck_minutes',
         'timezone',
+        'is_demo',
     ];
 
     protected $casts = [
         'match_window_minutes' => 'integer',
         'recheck_minutes' => 'integer',
+        'is_demo' => 'boolean',
     ];
+
+    public function isDemo(): bool
+    {
+        return $this->is_demo === true;
+    }
 
     public function users(): HasMany
     {

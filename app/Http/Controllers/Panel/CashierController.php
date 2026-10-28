@@ -8,6 +8,7 @@ use App\Http\Requests\Panel\StoreCashierRequest;
 use App\Http\Requests\Panel\UpdateCashierRequest;
 use App\Http\Resources\Panel\CashierResource;
 use App\Models\Cashier;
+use App\Services\Demo\DemoProtection;
 use App\Services\Panel\CashierService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,8 @@ class CashierController extends Controller
 
     public function store(StoreCashierRequest $request): JsonResponse
     {
+        DemoProtection::ensureWritable($request->user()->business);
+
         $cashier = Cashier::create([
             'business_id' => $request->user()->business_id,
             ...$request->validated(),
@@ -36,6 +39,8 @@ class CashierController extends Controller
 
     public function update(UpdateCashierRequest $request, int $cashier): JsonResponse
     {
+        DemoProtection::ensureWritable($request->user()->business);
+
         $model = $this->findForBusiness($request, $cashier);
         $model->update($request->validated());
 
@@ -44,6 +49,8 @@ class CashierController extends Controller
 
     public function activate(Request $request, int $cashier): JsonResponse
     {
+        DemoProtection::ensureWritable($request->user()->business);
+
         $model = $this->findForBusiness($request, $cashier);
         $model->update(['is_active' => true]);
 
@@ -52,6 +59,8 @@ class CashierController extends Controller
 
     public function deactivate(Request $request, int $cashier): JsonResponse
     {
+        DemoProtection::ensureWritable($request->user()->business);
+
         $model = $this->findForBusiness($request, $cashier);
         $model->update(['is_active' => false]);
 
@@ -60,6 +69,8 @@ class CashierController extends Controller
 
     public function destroy(Request $request, int $cashier, CashierService $service): JsonResponse
     {
+        DemoProtection::ensureWritable($request->user()->business);
+
         $model = $this->findForBusiness($request, $cashier);
 
         try {

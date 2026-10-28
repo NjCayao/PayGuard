@@ -13,6 +13,7 @@ import VerificationDetail from './pages/VerificationDetail';
 import Devices from './pages/Devices';
 import OwnerAlerts from './pages/OwnerAlerts';
 import Settings from './pages/Settings';
+import Account from './pages/Account';
 
 export default function Panel() {
     return (
@@ -51,6 +52,7 @@ export default function Panel() {
                         <Route path="dispositivo" element={<Devices />} />
                         <Route path="alertas" element={<OwnerAlerts />} />
                         <Route path="configuracion" element={<Settings />} />
+                        <Route path="mi-cuenta" element={<Account />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/app" replace />} />
                 </Routes>

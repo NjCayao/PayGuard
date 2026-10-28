@@ -20,7 +20,7 @@ class ExpireStuckVerifications extends Command
     {
         $stuck = Verification::where('status', 'processing')
             ->where('updated_at', '<', now()->subMinutes((int) config('payguard.verification.processing_timeout_minutes')))
-            ->with('cashier')
+            ->with(['business', 'cashier'])
             ->get();
 
         if ($this->option('dry-run')) {
@@ -38,7 +38,10 @@ class ExpireStuckVerifications extends Command
             $verification->update(['status' => 'error', 'reason' => $rendered['reason'], 'reason_code' => 'expired']);
             $closed++;
 
-            if ($verification->created_at->lt($notifySince) || $verification->cashier === null) {
+            if ($verification->created_at->lt($notifySince)
+                || $verification->cashier === null
+                || $verification->business->isDemo()
+            ) {
                 continue;
             }
 

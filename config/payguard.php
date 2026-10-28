@@ -222,6 +222,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo account for judges
+    |--------------------------------------------------------------------------
+    |
+    | The payguard:demo-seed and payguard:demo-reset commands refuse to run in
+    | production unless enabled is true on purpose. The owner credentials
+    | always come from the environment, never from the code. blocked_message
+    | is the Spanish text shown when a demo user tries a disabled action.
+    |
+    */
+
+    'demo' => [
+        'enabled' => (bool) env('PAYGUARD_DEMO_ENABLED', false),
+        'email' => env('PAYGUARD_DEMO_EMAIL'),
+        'password' => env('PAYGUARD_DEMO_PASSWORD'),
+        'business_name' => env('PAYGUARD_DEMO_BUSINESS_NAME', 'Bodega El Sol'),
+        'blocked_message' => 'Cuenta de demostración: esta acción está desactivada.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Companion app devices
     |--------------------------------------------------------------------------
     |

@@ -21,6 +21,7 @@ class OwnerResource extends JsonResource
                 'match_window_minutes' => $this->business->match_window_minutes,
                 'recheck_minutes' => $this->business->recheck_minutes,
                 'timezone' => $this->business->timezone,
+                'is_demo' => $this->business->isDemo(),
             ],
         ];
     }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Device\AuthController as DeviceAuthController;
 use App\Http\Controllers\Device\HeartbeatController;
 use App\Http\Controllers\Device\PaymentController;
+use App\Http\Controllers\Panel\AccountController;
 use App\Http\Controllers\Panel\AuthController;
 use App\Http\Controllers\Panel\BusinessSettingsController;
 use App\Http\Controllers\Panel\CashierController;
@@ -27,6 +28,11 @@ Route::prefix('panel')->name('panel.')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/user', [AuthController::class, 'user'])->name('user');
+
+        Route::get('/account', [AccountController::class, 'show'])->name('account.show');
+        Route::put('/account/email', [AccountController::class, 'updateEmail'])->name('account.email');
+        Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
+        Route::put('/account/owner-whatsapp', [AccountController::class, 'updateOwnerWhatsapp'])->name('account.owner-whatsapp');
 
         Route::get('/cashiers', [CashierController::class, 'index'])->name('cashiers.index');
         Route::post('/cashiers', [CashierController::class, 'store'])->name('cashiers.store');

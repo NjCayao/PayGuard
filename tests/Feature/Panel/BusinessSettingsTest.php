@@ -30,14 +30,12 @@ class BusinessSettingsTest extends TestCase
         $response = $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Bodega El Sol',
             'yape_holder_name' => 'Maria Torres Quispe',
-            'owner_whatsapp' => '+51 999 888 777',
             'match_window_minutes' => 15,
             'recheck_minutes' => 3,
         ]);
 
         $response->assertOk();
         $response->assertJsonPath('data.business.name', 'Bodega El Sol');
-        $response->assertJsonPath('data.business.owner_whatsapp', '51999888777');
 
         $this->assertDatabaseHas('businesses', [
             'id' => $owner->business_id,
@@ -47,27 +45,33 @@ class BusinessSettingsTest extends TestCase
         ]);
     }
 
+    public function test_update_ignores_owner_whatsapp(): void
+    {
+        $owner = User::factory()->create();
+        $before = $owner->business->owner_whatsapp;
+
+        $this->actingAs($owner)->putJson('/api/panel/settings', [
+            'name' => 'Bodega El Sol',
+            'owner_whatsapp' => '51911111111',
+            'match_window_minutes' => 15,
+            'recheck_minutes' => 3,
+        ])->assertOk();
+
+        $this->assertSame($before, $owner->business->fresh()->owner_whatsapp);
+    }
+
     public function test_update_rejects_invalid_values(): void
     {
         $owner = User::factory()->create();
 
         $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Bodega El Sol',
-            'owner_whatsapp' => 'not-a-number',
-            'match_window_minutes' => 15,
-            'recheck_minutes' => 3,
-        ])->assertStatus(422);
-
-        $this->actingAs($owner)->putJson('/api/panel/settings', [
-            'name' => 'Bodega El Sol',
-            'owner_whatsapp' => '51999888777',
             'match_window_minutes' => 99,
             'recheck_minutes' => 3,
         ])->assertStatus(422);
 
         $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Bodega El Sol',
-            'owner_whatsapp' => '51999888777',
             'match_window_minutes' => 15,
             'recheck_minutes' => 99,
         ])->assertStatus(422);
@@ -80,7 +84,6 @@ class BusinessSettingsTest extends TestCase
         $response = $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Bodega El Sol',
             'yape_holder_name' => str_repeat('a', 121),
-            'owner_whatsapp' => '51999888777',
             'match_window_minutes' => 'many',
             'recheck_minutes' => 3,
         ]);
@@ -99,7 +102,6 @@ class BusinessSettingsTest extends TestCase
 
         $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Hacked',
-            'owner_whatsapp' => '51999888777',
             'match_window_minutes' => 15,
             'recheck_minutes' => 3,
         ])->assertOk();
