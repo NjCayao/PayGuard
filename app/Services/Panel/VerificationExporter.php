@@ -23,6 +23,11 @@ class VerificationExporter
         'text' => 'Texto',
     ];
 
+    private const WALLET_LABELS = [
+        'yape' => 'Yape',
+        'plin' => 'Plin',
+    ];
+
     public function __construct(private VerificationListQuery $list) {}
 
     public function toXlsx(Business $business, array $filters): string
@@ -92,8 +97,8 @@ class VerificationExporter
             $verification->cashier->name,
             self::INPUT_LABELS[$verification->input_type] ?? $verification->input_type,
             mb_substr((string) $query, 0, 120),
-            $verification->wallet ?? '',
-            $verification->amount ?? '',
+            self::WALLET_LABELS[$verification->wallet ?? ''] ?? '',
+            $verification->amount === null ? '' : 'S/ '.$verification->amount,
             $verification->recipient_name ?? '',
             $verification->security_code ?? '',
             $this->label($verification),
@@ -114,7 +119,7 @@ class VerificationExporter
         if ($verification->reason_code === 'offline') {
             return $verification->status === 'pending'
                 ? 'Pendiente: celular desconectado'
-                : 'No confirmado: celular desconectado';
+                : 'Sin confirmar: celular desconectado';
         }
 
         return [

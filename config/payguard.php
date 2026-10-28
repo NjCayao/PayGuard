@@ -111,9 +111,9 @@ return [
 
         'replies' => [
             'unauthorized' => 'Este número no está autorizado en PayGuard. Pide al dueño que te registre.',
-            'unsupported' => 'Envíame la captura del Yape (imagen) o un audio.',
+            'unsupported' => 'Envíame la captura del pago (imagen), un audio o un mensaje con el monto.',
             'error' => 'No pude revisar este pago. Inténtalo de nuevo en un momento.',
-            'text_help' => 'Hola, soy PayGuard, tu asistente para evitar pagos falsos con Yape. Mándame la captura del Yape del cliente, o escríbeme o dime en un audio "yape de 50", y te confirmo al instante si llegó.',
+            'text_help' => 'Hola, soy PayGuard. Mándame la captura del Yape del cliente o pregúntame en un audio, por ejemplo "¿llegó un Yape de 50 soles de Juan?", y te confirmo si llegó.',
         ],
     ],
 
@@ -172,10 +172,6 @@ return [
             'yape' => 'Yape',
             'plin' => 'Plin',
         ],
-        'wallet_plurals' => [
-            'yape' => 'Yapes',
-            'plin' => 'Plines',
-        ],
         'status_emoji' => [
             'verified' => '✅',
             'pending' => '⏳',
@@ -184,6 +180,9 @@ return [
             'mismatch' => '❌',
             'reused' => '❌',
             'offline' => '⚠',
+            'multiple' => '⚠',
+            'already_confirmed' => '⚠',
+            'error' => '❌',
         ],
         'reasons' => [
             'verified' => ':wallet recibido: :amount de :payer',
@@ -192,16 +191,16 @@ return [
             'already_reviewing' => 'Ya estoy revisando esta captura.',
             'reused' => 'Esta captura ya se usó antes.',
             'not_found' => 'No llegó ningún pago de :amount.',
-            'stale' => 'No encontré ningún :wallet de :amount cerca de las :time.',
+            'stale' => 'No encontré ningún :wallet de :amount cerca de las :time',
             'offline' => 'El celular del negocio no está conectado. No puedo confirmar este pago.',
             'unreadable' => 'No pude leer los datos de la captura.',
-            'mismatch_recipient' => 'El pago no es para este negocio.',
+            'mismatch_recipient' => 'El pago es para otro titular, no para este negocio.',
             'mismatch_code' => 'El código de seguridad no coincide.',
             'mismatch_amount' => 'Llegó un pago parecido de :amount, no de :expected.',
             'expired' => 'La revisión tardó demasiado. Vuelve a enviar la captura.',
             'expired_query' => 'La revisión tardó demasiado. Vuelve a preguntar.',
-            'multiple_matches' => 'Hay :count :wallets de :amount recientes: :items. Mándame la captura para saber cuál es.',
-            'already_confirmed' => 'Ese :wallet ya fue confirmado a las :confirmed. Mándame la captura para revisarlo.',
+            'multiple_matches' => 'Hay :count pagos por :wallet de :amount recientes: :items. Mándame la captura para saber cuál es.',
+            'already_confirmed' => 'Ese :wallet ya fue confirmado a las :confirmed — mándame la captura para revisarlo.',
             'edit_suffix' => ' Además, la imagen muestra señales de edición.',
             'holder_skipped_suffix' => ' (destinatario no verificado)',
         ],

@@ -36,10 +36,16 @@ class UpdateBusinessSettingsRequest extends FormRequest
     {
         return [
             'name.required' => 'Escribe el nombre del negocio.',
+            'name.max' => 'El nombre del negocio no puede pasar de 120 caracteres.',
+            'yape_holder_name.max' => 'El titular no puede pasar de 120 caracteres.',
             'owner_whatsapp.required' => 'Escribe tu número de WhatsApp.',
             'owner_whatsapp.regex' => 'Escribe un número de WhatsApp válido.',
+            'match_window_minutes.required' => 'Escribe la ventana de comparación.',
+            'match_window_minutes.integer' => 'La ventana debe ser un número de minutos.',
             'match_window_minutes.min' => 'La ventana debe ser de al menos 1 minuto.',
             'match_window_minutes.max' => 'La ventana no puede pasar de 60 minutos.',
+            'recheck_minutes.required' => 'Escribe el tiempo de revisión.',
+            'recheck_minutes.integer' => 'El tiempo de revisión debe ser un número de minutos.',
             'recheck_minutes.min' => 'La revisión debe durar al menos 1 minuto.',
             'recheck_minutes.max' => 'La revisión no puede pasar de 10 minutos.',
         ];

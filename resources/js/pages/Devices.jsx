@@ -57,7 +57,7 @@ export default function Devices() {
 
     return (
         <div>
-            <h1 className="text-xl font-bold text-slate-900">Dispositivos</h1>
+            <h1 className="text-xl font-bold text-slate-900">Dispositivo</h1>
 
             {notice !== '' && <p className={`${alertOkClass} mt-4`}>{notice}</p>}
             {error !== '' && <p className={`${alertErrorClass} mt-4`}>{error}</p>}

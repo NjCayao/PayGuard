@@ -4,7 +4,7 @@ import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { alertErrorClass, cardClass, linkButtonClass } from '../components/ui';
 import { formatDateTime, formatMoney } from '../utils/format';
-import { alertStatus, inputTypeLabel, toneClass, verificationStatus } from '../utils/status';
+import { alertStatus, inputTypeLabel, toneClass, verificationStatus, walletLabel } from '../utils/status';
 
 function Row({ label, value }) {
     return (
@@ -56,7 +56,7 @@ export default function VerificationDetail() {
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
                 <h1 className="text-xl font-bold text-slate-900">
-                    Verificación del {formatDateTime(item.created_at, timeZone)}
+                    Verificación · {formatDateTime(item.created_at, timeZone)}
                 </h1>
                 <span className={toneClass[badge.tone]}>{badge.label}</span>
             </div>
@@ -73,7 +73,7 @@ export default function VerificationDetail() {
                     )}
                     <Row label="Monto" value={formatMoney(item.amount)} />
                     <Row label="Destinatario" value={item.recipient_name ?? '—'} />
-                    <Row label="Billetera" value={item.wallet ?? '—'} />
+                    <Row label="Billetera" value={walletLabel[item.wallet] ?? '—'} />
                     <Row label="Código" value={item.security_code ?? '—'} />
                     <Row label="Operación" value={item.operation_code ?? '—'} />
                     <Row

@@ -22,6 +22,7 @@ class VerificationExportTest extends TestCase
             'input_type' => 'text',
             'status' => 'verified',
             'reason_code' => 'verified',
+            'wallet' => 'yape',
             'amount' => '50.00',
             'extracted' => ['raw_text' => 'yape de 50'],
         ]);
@@ -61,6 +62,8 @@ class VerificationExportTest extends TestCase
         $this->assertSame('Consulta', $rows[0][3]);
         $this->assertSame('Texto', $rows[1][2]);
         $this->assertSame('yape de 50', $rows[1][3]);
+        $this->assertSame('Yape', $rows[1][4]);
+        $this->assertSame('S/ 50.00', $rows[1][5]);
         $this->assertSame('Verificado', $rows[1][8]);
     }
 

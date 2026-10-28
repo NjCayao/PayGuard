@@ -289,7 +289,7 @@ class ProcessIncomingMessageTest extends TestCase
             $data = $request->data();
 
             return $data['to'] === $cashier->whatsapp
-                && $data['text']['body'] === 'Envíame la captura del Yape (imagen) o un audio.'
+                && $data['text']['body'] === 'Envíame la captura del pago (imagen), un audio o un mensaje con el monto.'
                 && $data['context']['message_id'] === 'wamid.vid';
         });
     }

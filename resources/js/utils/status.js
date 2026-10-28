@@ -12,11 +12,16 @@ export const inputTypeLabel = {
     text: 'Texto',
 };
 
+export const walletLabel = {
+    yape: 'Yape',
+    plin: 'Plin',
+};
+
 export function verificationStatus(item) {
     if (item.reason_code === 'offline') {
         return item.status === 'pending'
             ? { label: 'Pendiente: celular desconectado', tone: 'warn' }
-            : { label: 'No confirmado: celular desconectado', tone: 'warn' };
+            : { label: 'Sin confirmar: celular desconectado', tone: 'warn' };
     }
 
     if (item.reason_code === 'multiple_matches') {

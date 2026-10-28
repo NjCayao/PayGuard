@@ -15,7 +15,11 @@
 <body>
     <h1>Verificaciones - {{ $business->name }}</h1>
     <p class="meta">
-        Del {{ $filters['date_from'] ?? 'inicio' }} al {{ $filters['date_to'] ?? 'hoy' }}.
+        @if (empty($filters['date_from']) && empty($filters['date_to']))
+            Todas las fechas.
+        @else
+            Del {{ $filters['date_from'] ?? 'inicio' }} al {{ $filters['date_to'] ?? 'hoy' }}.
+        @endif
         Generado el {{ $generatedAt->format('d/m/Y H:i') }}.
     </p>
     <table>

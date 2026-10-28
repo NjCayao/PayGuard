@@ -22,8 +22,9 @@ class Strings {
   static const String readyTitle = 'Protegiendo tus pagos';
   static const String readySubtitle = 'Cada Yape que recibas llega a PayGuard al instante.';
 
-  static String incompleteTitle(int missing) =>
-      'Faltan $missing pasos para proteger tus pagos';
+  static String incompleteTitle(int missing) => missing == 1
+      ? 'Falta 1 paso para proteger tus pagos'
+      : 'Faltan $missing pasos para proteger tus pagos';
 
   static const String rowNotifications = 'Leer notificaciones';
   static const String rowNotificationsDetail = 'Para ver los Yapes que recibes';
@@ -34,7 +35,7 @@ class Strings {
   static const String rowConnected = 'Conectado al servidor';
   static const String rowSessionExpired = 'La sesión venció';
   static const String actionLogin = 'Entrar';
-  static const String neverContacted = 'Sin contactar todavía';
+  static const String neverContacted = 'Aún sin contacto';
 
   static const String restrictedTitle = 'Si el interruptor no se deja activar';
   static const String restrictedSteps =

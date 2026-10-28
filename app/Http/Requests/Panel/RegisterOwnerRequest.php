@@ -48,10 +48,13 @@ class RegisterOwnerRequest extends FormRequest
     {
         return [
             'business_name.required' => 'Escribe el nombre del negocio.',
+            'business_name.max' => 'El nombre del negocio no puede pasar de 120 caracteres.',
             'name.required' => 'Escribe tu nombre.',
+            'name.max' => 'Tu nombre no puede pasar de 255 caracteres.',
             'email.required' => 'Escribe tu correo.',
             'email.email' => 'Escribe un correo válido.',
             'email.unique' => 'Este correo ya está registrado.',
+            'email.max' => 'El correo no puede pasar de 255 caracteres.',
             'password.required' => 'Escribe una contraseña.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'Las contraseñas no coinciden.',

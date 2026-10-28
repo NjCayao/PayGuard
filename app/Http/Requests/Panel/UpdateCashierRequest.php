@@ -38,6 +38,7 @@ class UpdateCashierRequest extends FormRequest
     {
         return [
             'name.required' => 'Escribe el nombre del cajero.',
+            'name.max' => 'El nombre no puede pasar de 80 caracteres.',
             'whatsapp.required' => 'Escribe el número de WhatsApp.',
             'whatsapp.regex' => 'Escribe un número de WhatsApp válido.',
             'whatsapp.unique' => 'Este número ya está registrado.',

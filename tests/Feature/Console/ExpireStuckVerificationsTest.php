@@ -62,7 +62,7 @@ class ExpireStuckVerificationsTest extends TestCase
 
             return ($data['type'] ?? '') === 'text'
                 && ($data['context']['message_id'] ?? '') === $verification->wa_message_id
-                && $data['text']['body'] === 'La revisión tardó demasiado. Vuelve a enviar la captura.';
+                && $data['text']['body'] === '❌ La revisión tardó demasiado. Vuelve a enviar la captura.';
         });
     }
 

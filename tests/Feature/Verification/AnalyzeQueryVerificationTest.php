@@ -72,7 +72,7 @@ class AnalyzeQueryVerificationTest extends TestCase
         $this->assertSame($payment->id, $verification->received_payment_id);
         $this->assertSame('50.00', $verification->amount);
         $this->assertSame('Juan', $verification->extracted['query']['payer_name']);
-        $this->assertSame('Yape recibido: S/ 50.00 de Juan Perez', $verification->reason);
+        $this->assertSame('Yape recibido: S/ 50.00 de Juan Perez.', $verification->reason);
         $this->assertTextReply($verification, '✅ Yape recibido: S/ 50.00 de Juan Perez');
         $this->assertNoTemplate();
         Queue::assertNotPushed(RecheckPendingVerification::class);
@@ -162,10 +162,10 @@ class AnalyzeQueryVerificationTest extends TestCase
         $this->assertSame('mismatch', $verification->status);
         $this->assertSame('multiple_matches', $verification->reason_code);
         $this->assertNull($verification->received_payment_id);
-        $this->assertStringStartsWith('Hay 2 Yapes de S/ 50.00 recientes: ', $verification->reason);
+        $this->assertStringStartsWith('Hay 2 pagos por Yape de S/ 50.00 recientes: ', $verification->reason);
         $this->assertStringContainsString('Antoni Mon*', $verification->reason);
         $this->assertStringContainsString('Sonia Vit*', $verification->reason);
-        $this->assertTextReply($verification, 'Hay 2 Yapes de S/ 50.00 recientes: ');
+        $this->assertTextReply($verification, '⚠ Hay 2 pagos por Yape de S/ 50.00 recientes: ');
         $this->assertNoTemplate();
         Queue::assertNotPushed(RecheckPendingVerification::class);
     }
@@ -189,7 +189,7 @@ class AnalyzeQueryVerificationTest extends TestCase
         $this->assertSame('reused', $verification->status);
         $this->assertSame('already_confirmed', $verification->reason_code);
         $this->assertStringStartsWith('Ese Yape ya fue confirmado a las ', $verification->reason);
-        $this->assertTextReply($verification, 'Ese Yape ya fue confirmado a las ');
+        $this->assertTextReply($verification, '⚠ Ese Yape ya fue confirmado a las ');
         $this->assertNoTemplate();
         Queue::assertNotPushed(RecheckPendingVerification::class);
     }

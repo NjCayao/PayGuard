@@ -30,14 +30,14 @@ class BusinessSettingsTest extends TestCase
         $response = $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Bodega El Sol',
             'yape_holder_name' => 'Maria Torres Quispe',
-            'owner_whatsapp' => '+51 982 226 835',
+            'owner_whatsapp' => '+51 999 888 777',
             'match_window_minutes' => 15,
             'recheck_minutes' => 3,
         ]);
 
         $response->assertOk();
         $response->assertJsonPath('data.business.name', 'Bodega El Sol');
-        $response->assertJsonPath('data.business.owner_whatsapp', '51982226835');
+        $response->assertJsonPath('data.business.owner_whatsapp', '51999888777');
 
         $this->assertDatabaseHas('businesses', [
             'id' => $owner->business_id,
@@ -60,17 +60,36 @@ class BusinessSettingsTest extends TestCase
 
         $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Bodega El Sol',
-            'owner_whatsapp' => '51982226835',
+            'owner_whatsapp' => '51999888777',
             'match_window_minutes' => 99,
             'recheck_minutes' => 3,
         ])->assertStatus(422);
 
         $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Bodega El Sol',
-            'owner_whatsapp' => '51982226835',
+            'owner_whatsapp' => '51999888777',
             'match_window_minutes' => 15,
             'recheck_minutes' => 99,
         ])->assertStatus(422);
+    }
+
+    public function test_update_errors_come_back_in_spanish(): void
+    {
+        $owner = User::factory()->create();
+
+        $response = $this->actingAs($owner)->putJson('/api/panel/settings', [
+            'name' => 'Bodega El Sol',
+            'yape_holder_name' => str_repeat('a', 121),
+            'owner_whatsapp' => '51999888777',
+            'match_window_minutes' => 'many',
+            'recheck_minutes' => 3,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('yape_holder_name');
+        $response->assertJsonValidationErrors('match_window_minutes');
+        $response->assertJsonPath('errors.yape_holder_name.0', 'El titular no puede pasar de 120 caracteres.');
+        $response->assertJsonPath('errors.match_window_minutes.0', 'La ventana debe ser un número de minutos.');
     }
 
     public function test_owner_cannot_update_other_business(): void
@@ -80,7 +99,7 @@ class BusinessSettingsTest extends TestCase
 
         $this->actingAs($owner)->putJson('/api/panel/settings', [
             'name' => 'Hacked',
-            'owner_whatsapp' => '51982226835',
+            'owner_whatsapp' => '51999888777',
             'match_window_minutes' => 15,
             'recheck_minutes' => 3,
         ])->assertOk();

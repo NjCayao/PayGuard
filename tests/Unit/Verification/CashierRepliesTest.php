@@ -20,8 +20,8 @@ class CashierRepliesTest extends TestCase
             $this->payment(),
         );
 
-        $this->assertSame('Yape recibido: S/ 50.00 de Juan Perez', $rendered['reason']);
-        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez', $rendered['reply']);
+        $this->assertSame('Yape recibido: S/ 50.00 de Juan Perez.', $rendered['reason']);
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez.', $rendered['reply']);
     }
 
     public function test_verified_reply_includes_code_suffix_when_present(): void
@@ -34,7 +34,7 @@ class CashierRepliesTest extends TestCase
             $this->payment(['security_code' => '944']),
         );
 
-        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez · Cód. 944', $fromPayment['reply']);
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez · Cód. 944.', $fromPayment['reply']);
 
         $fromCapture = $replies->render(
             $this->verification(['security_code' => '123']),
@@ -42,7 +42,7 @@ class CashierRepliesTest extends TestCase
             $this->payment(),
         );
 
-        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez · Cód. 123', $fromCapture['reply']);
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez · Cód. 123.', $fromCapture['reply']);
     }
 
     public function test_verified_reply_without_payer_name(): void
@@ -56,7 +56,7 @@ class CashierRepliesTest extends TestCase
             ]),
         );
 
-        $this->assertSame('✅ Yape recibido: S/ 50.00 de un cliente', $rendered['reply']);
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de un cliente.', $rendered['reply']);
     }
 
     public function test_offline_reply(): void
@@ -126,7 +126,7 @@ class CashierRepliesTest extends TestCase
         $this->assertSame('❌ Llegó un pago parecido de S/ 10.00, no de S/ 50.00.', $rendered['reply']);
     }
 
-    public function test_multiple_matches_reply_lists_candidates_without_emoji(): void
+    public function test_multiple_matches_reply_lists_candidates(): void
     {
         $rendered = app(CashierReplies::class)->render(
             $this->verification(),
@@ -140,13 +140,12 @@ class CashierRepliesTest extends TestCase
         );
 
         $this->assertSame(
-            'Hay 2 Yapes de S/ 50.00 recientes: Antoni Mon* (10:44 a. m) y Sonia Vit* (10:45 a. m). Mándame la captura para saber cuál es.',
+            '⚠ Hay 2 pagos por Yape de S/ 50.00 recientes: Antoni Mon* (10:44 a. m.) y Sonia Vit* (10:45 a. m.). Mándame la captura para saber cuál es.',
             $rendered['reply']
         );
-        $this->assertSame($rendered['reason'], $rendered['reply']);
     }
 
-    public function test_already_confirmed_reply_shows_time_without_emoji(): void
+    public function test_already_confirmed_reply_shows_time(): void
     {
         $rendered = app(CashierReplies::class)->render(
             $this->verification(),
@@ -156,7 +155,7 @@ class CashierRepliesTest extends TestCase
         );
 
         $this->assertSame(
-            'Ese Yape ya fue confirmado a las 10:44 a. m. Mándame la captura para revisarlo.',
+            '⚠ Ese Yape ya fue confirmado a las 10:44 a. m. — mándame la captura para revisarlo.',
             $rendered['reply']
         );
     }
@@ -165,7 +164,8 @@ class CashierRepliesTest extends TestCase
     {
         $rendered = app(CashierReplies::class)->renderExpired('audio');
 
-        $this->assertSame('La revisión tardó demasiado. Vuelve a preguntar.', $rendered['reply']);
+        $this->assertSame('La revisión tardó demasiado. Vuelve a preguntar.', $rendered['reason']);
+        $this->assertSame('❌ La revisión tardó demasiado. Vuelve a preguntar.', $rendered['reply']);
     }
 
     public function test_holder_skipped_suffix(): void
@@ -176,7 +176,7 @@ class CashierRepliesTest extends TestCase
             $this->payment(),
         );
 
-        $this->assertStringEndsWith('(destinatario no verificado)', $rendered['reason']);
+        $this->assertStringEndsWith('(destinatario no verificado).', $rendered['reason']);
     }
 
     public function test_edit_signals_suffix_only_on_final_results(): void

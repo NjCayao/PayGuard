@@ -60,6 +60,10 @@ class CashierReplies
                 $reason .= (string) config('payguard.verification.reasons.edit_suffix');
             }
 
+            if (! str_ends_with($reason, '.')) {
+                $reason .= '.';
+            }
+
             $reason = mb_substr($reason, 0, 255);
         }
 
@@ -76,8 +80,9 @@ class CashierReplies
     {
         $key = $inputType === 'image' ? 'expired' : 'expired_query';
         $reason = mb_substr((string) config("payguard.verification.reasons.{$key}"), 0, 255);
+        $emoji = (string) config('payguard.verification.status_emoji.error', '');
 
-        return ['reason' => $reason, 'reply' => $reason];
+        return ['reason' => $reason, 'reply' => $emoji === '' ? $reason : "{$emoji} {$reason}"];
     }
 
     public static function formatAmount(?string $amount): string
@@ -92,13 +97,12 @@ class CashierReplies
         $time = $verification->paid_at ?? $payment?->received_at ?? $verification->created_at;
 
         return str_replace(
-            [':amount', ':expected', ':payer', ':wallet', ':wallets', ':count', ':items', ':confirmed', ':time', ':date', ':code'],
+            [':amount', ':expected', ':payer', ':wallet', ':count', ':items', ':confirmed', ':time', ':date', ':code'],
             [
                 self::formatAmount($outcome->params['amount'] ?? $verification->amount),
                 self::formatAmount($outcome->params['expected'] ?? null),
                 $payment?->payer_name ?? 'un cliente',
                 (string) config("payguard.verification.wallet_labels.{$verification->wallet}", 'Yape'),
-                (string) config("payguard.verification.wallet_plurals.{$verification->wallet}", 'Yapes'),
                 (string) ($outcome->params['count'] ?? ''),
                 $this->matchItems($outcome->params['matches'] ?? [], $timezone),
                 $this->confirmedTime($outcome->params['confirmed_at'] ?? null, $timezone),
@@ -172,7 +176,7 @@ class CashierReplies
     {
         $local = $time->copy()->setTimezone($timezone);
 
-        return $local->format('g:i').' '.($local->format('A') === 'AM' ? 'a. m' : 'p. m');
+        return $local->format('g:i').' '.($local->format('A') === 'AM' ? 'a. m.' : 'p. m.');
     }
 
     private function date(Carbon $date, string $timezone): string

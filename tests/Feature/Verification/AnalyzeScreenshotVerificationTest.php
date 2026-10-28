@@ -63,7 +63,7 @@ class AnalyzeScreenshotVerificationTest extends TestCase
         $this->assertSame('Maria Torres', $verification->recipient_name);
         $this->assertSame('50.00', $verification->amount);
         $this->assertIsInt($verification->ai_ms);
-        $this->assertSame('Yape recibido: S/ 50.00 de Juan Perez', $verification->reason);
+        $this->assertSame('Yape recibido: S/ 50.00 de Juan Perez.', $verification->reason);
         $this->assertTextReply($verification, '✅ Yape recibido: S/ 50.00 de Juan Perez');
         $this->assertNoTemplate();
         Queue::assertNotPushed(RecheckPendingVerification::class);
@@ -224,7 +224,7 @@ class AnalyzeScreenshotVerificationTest extends TestCase
         $verification->refresh();
 
         $this->assertSame('mismatch', $verification->status);
-        $this->assertTextReply($verification, '❌ El pago no es para este negocio.');
+        $this->assertTextReply($verification, '❌ El pago es para otro titular, no para este negocio.');
         $this->assertTemplateSent();
         $this->assertDatabaseHas('owner_alerts', [
             'business_id' => $this->business->id,
