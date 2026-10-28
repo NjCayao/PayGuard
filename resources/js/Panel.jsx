@@ -8,8 +8,11 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import Cashiers from './pages/Cashiers';
 import ReceivedPayments from './pages/ReceivedPayments';
+import Verifications from './pages/Verifications';
+import VerificationDetail from './pages/VerificationDetail';
 import Devices from './pages/Devices';
-import ComingSoon from './pages/ComingSoon';
+import OwnerAlerts from './pages/OwnerAlerts';
+import Settings from './pages/Settings';
 
 export default function Panel() {
     return (
@@ -43,15 +46,11 @@ export default function Panel() {
                         <Route index element={<Home />} />
                         <Route path="cajeros" element={<Cashiers />} />
                         <Route path="pagos" element={<ReceivedPayments />} />
-                        <Route
-                            path="verificaciones"
-                            element={<ComingSoon title="Verificaciones" />}
-                        />
+                        <Route path="verificaciones" element={<Verifications />} />
+                        <Route path="verificaciones/:id" element={<VerificationDetail />} />
                         <Route path="dispositivo" element={<Devices />} />
-                        <Route
-                            path="configuracion"
-                            element={<ComingSoon title="Configuración" />}
-                        />
+                        <Route path="alertas" element={<OwnerAlerts />} />
+                        <Route path="configuracion" element={<Settings />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/app" replace />} />
                 </Routes>

@@ -7,11 +7,15 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        api.get('/user')
+    function refreshUser() {
+        return api
+            .get('/user')
             .then((response) => setUser(response.data.data))
-            .catch(() => setUser(null))
-            .finally(() => setLoading(false));
+            .catch(() => setUser(null));
+    }
+
+    useEffect(() => {
+        refreshUser().finally(() => setLoading(false));
     }, []);
 
     async function login(credentials) {
@@ -32,7 +36,7 @@ export function AuthProvider({ children }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

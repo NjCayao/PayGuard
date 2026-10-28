@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 const links = [
@@ -7,6 +7,7 @@ const links = [
     { to: '/app/verificaciones', label: 'Verificaciones' },
     { to: '/app/cajeros', label: 'Cajeros' },
     { to: '/app/dispositivo', label: 'Dispositivo' },
+    { to: '/app/alertas', label: 'Alertas' },
     { to: '/app/configuracion', label: 'Configuración' },
 ];
 
@@ -71,6 +72,18 @@ export default function Layout() {
                     </button>
                 </div>
                 <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+                    {user?.business && !user.business.yape_holder_name && (
+                        <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            Configura el titular de tu Yape para verificar el destinatario
+                            de cada pago.{' '}
+                            <Link
+                                to="/app/configuracion"
+                                className="font-semibold text-amber-900 underline"
+                            >
+                                Ir a Configuración
+                            </Link>
+                        </p>
+                    )}
                     <Outlet />
                 </main>
             </div>
