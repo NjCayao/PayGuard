@@ -1,27 +1,5 @@
 import 'package:flutter/services.dart';
 
-class SentPayment {
-  const SentPayment({
-    required this.text,
-    required this.postedAt,
-    required this.sentAt,
-  });
-
-  final String text;
-  final DateTime postedAt;
-  final DateTime sentAt;
-
-  static SentPayment fromMap(Map<Object?, Object?> map) {
-    final int postedMs = (map['postedMs'] as int?) ?? 0;
-    final int sentMs = (map['sentMs'] as int?) ?? 0;
-    return SentPayment(
-      text: (map['text'] as String?) ?? '',
-      postedAt: DateTime.fromMillisecondsSinceEpoch(postedMs),
-      sentAt: DateTime.fromMillisecondsSinceEpoch(sentMs),
-    );
-  }
-}
-
 class NativeBridge {
   static const MethodChannel _channel =
       MethodChannel('app.payguard.mobile/native');
@@ -31,6 +9,7 @@ class NativeBridge {
   static const String keyBaseUrlOverride = 'base_url_override';
   static const String keyInstallId = 'install_id';
   static const String keyDeviceName = 'device_name';
+  static const String keyBusinessName = 'business_name';
 
   Future<String?> secureGet(String key) {
     return _channel.invokeMethod<String>('secureGet', {'key': key});
@@ -82,24 +61,12 @@ class NativeBridge {
     return (await _channel.invokeMethod<int>('pendingCount')) ?? 0;
   }
 
-  Future<DateTime?> lastSentAt() async {
-    final int? ms = await _channel.invokeMethod<int>('lastSentAt');
+  Future<DateTime?> lastContactAt() async {
+    final int? ms = await _channel.invokeMethod<int>('lastContactAt');
     if (ms == null || ms <= 0) {
       return null;
     }
     return DateTime.fromMillisecondsSinceEpoch(ms);
-  }
-
-  Future<List<SentPayment>> sentHistory() async {
-    final List<Object?>? raw =
-        await _channel.invokeMethod<List<Object?>>('sentHistory');
-    if (raw == null) {
-      return const [];
-    }
-    return raw
-        .whereType<Map<Object?, Object?>>()
-        .map(SentPayment.fromMap)
-        .toList();
   }
 
   Future<void> clearQueue() {

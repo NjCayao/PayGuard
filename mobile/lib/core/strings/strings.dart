@@ -1,55 +1,70 @@
 class Strings {
   static const String appName = 'PayGuard';
+  static const String brandPay = 'Pay';
+  static const String brandGuard = 'Guard';
+  static const String brandSlogan = 'Cada pago, verificado.';
 
-  static const String loginTitle = 'Iniciar sesión';
-  static const String loginSubtitle = 'Usa tu cuenta de dueño de PayGuard.';
   static const String emailLabel = 'Correo';
-  static const String emailHint = 'tucorreo@ejemplo.com';
+  static const String emailHint = 'tu@negocio.com';
   static const String passwordLabel = 'Contraseña';
+  static const String passwordHint = 'Tu contraseña';
   static const String loginButton = 'Entrar';
+  static const String loginBottom = 'Usa la misma cuenta del panel web';
   static const String emailRequired = 'Escribe tu correo.';
   static const String emailInvalid = 'Escribe un correo válido.';
   static const String passwordRequired = 'Escribe tu contraseña.';
   static const String serverLabel = 'Dirección del servidor';
   static const String serverInvalid = 'Escribe una dirección válida (http:// o https://).';
 
-  static const String statusTitle = 'Estado';
-  static const String statusReady = 'Lista para recibir pagos.';
-  static const String statusNotReady = 'Te faltan pasos para activar la app.';
-  static const String notificationsTitle = 'Leer notificaciones';
-  static const String notificationsOk = 'La app puede leer las notificaciones de Yape.';
-  static const String notificationsMissing = 'Sin este permiso no se capturan los pagos.';
-  static const String notificationsButton = 'Abrir ajustes';
+  static const String incompleteLabel = 'Configuración incompleta';
+  static const String incompleteSubtitle = 'Toca cada paso pendiente para resolverlo.';
+  static const String readyLabel = 'Activo';
+  static const String readyTitle = 'Protegiendo tus pagos';
+  static const String readySubtitle = 'Cada Yape que recibas llega a PayGuard al instante.';
+
+  static String incompleteTitle(int missing) =>
+      'Faltan $missing pasos para proteger tus pagos';
+
+  static const String rowNotifications = 'Leer notificaciones';
+  static const String rowNotificationsDetail = 'Para ver los Yapes que recibes';
+  static const String actionActivate = 'Activar';
+  static const String rowAlwaysOn = 'Funcionar siempre';
+  static const String rowAlwaysOnDetail = 'Que Android no la duerma de noche';
+  static const String actionAllow = 'Permitir';
+  static const String rowConnected = 'Conectado al servidor';
+  static const String rowSessionExpired = 'La sesión venció';
+  static const String actionLogin = 'Entrar';
+  static const String neverContacted = 'Sin contactar todavía';
+
   static const String restrictedTitle = 'Si el interruptor no se deja activar';
   static const String restrictedSteps =
-      '1. Abre Ajustes del celular.\n2. Entra a Apps y busca PayGuard.\n3. Toca el menú (tres puntos) y elige "Permitir ajustes restringidos".\n4. Vuelve y activa el acceso a las notificaciones.';
-  static const String batteryTitle = 'Sin optimización de batería';
-  static const String batteryOk = 'La app puede trabajar con la pantalla apagada.';
-  static const String batteryMissing = 'Obligatorio: sin esto Android detiene la app.';
-  static const String batteryButton = 'Pedir exención';
-  static const String sessionTitle = 'Sesión';
-  static const String sessionActive = 'Sesión iniciada.';
-  static const String sessionMissing = 'No has iniciado sesión.';
-  static const String sessionInvalid = 'La sesión venció. Inicia sesión de nuevo.';
-  static const String sessionButton = 'Iniciar sesión';
-  static const String connectionButton = 'Probar conexión';
-  static const String connectionOk = 'Conexión correcta.';
-  static const String queueTitle = 'Pagos enviados';
-  static const String queueEmpty = 'Aún no se envía ningún pago.';
-  static const String queuePending = 'pagos por enviar';
-  static const String queueLastSent = 'Último envío';
-  static const String queueNever = 'ninguno todavía';
-  static const String queueSendNow = 'Enviar ahora';
-  static const String queueSeeAll = 'Ver últimos pagos';
+      'En Ajustes > Apps > PayGuard, toca el menú y elige "Permitir ajustes restringidos". Después vuelve y activa el acceso.';
+
+  static const String statToday = 'Hoy';
+  static const String statPending = 'Pendientes';
+  static const String statConnection = 'Conexión';
+
+  static String paymentsToday(int count) => count == 1 ? '1 pago' : '$count pagos';
+
+  static const String recentTitle = 'Últimos pagos';
+  static const String seeAll = 'Ver todos';
+  static const String recentEmpty = 'Cuando recibas Yapes, aparecen aquí.';
+  static const String unparsedPayment = 'Pago sin leer';
+  static const String codeLabel = 'Cód.';
+
+  static const String historyTitle = 'Últimos pagos';
+  static const String historyEmpty = 'Aún no hay pagos registrados.';
+  static const String sessionExpiredForHistory =
+      'La sesión venció. Vuelve atrás e inicia sesión de nuevo.';
+
+  static const String accountTitle = 'Cuenta';
+  static const String accountBusiness = 'Negocio';
+  static const String accountDevice = 'Este celular';
+  static const String accountPayments = 'Últimos pagos';
   static const String autostartTitle = 'Inicio automático';
   static const String autostartBody =
       'En Xiaomi, Huawei y otras marcas, permite el inicio automático de PayGuard para que siga funcionando tras reiniciar.';
-  static const String autostartButton = 'Abrir ajustes de la app';
-  static const String refreshButton = 'Actualizar';
-
-  static const String historyTitle = 'Últimos pagos';
-  static const String historyEmpty = 'Aún no hay pagos enviados desde este celular.';
-
+  static const String logoutButton = 'Cerrar sesión';
   static const String logoutTitle = 'Cerrar sesión';
   static const String logoutConfirm =
       'Se borran los pagos pendientes de envío y este celular deja de enviar pagos. ¿Seguro?';

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
-import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
 class PrimaryButton extends StatelessWidget {
@@ -21,13 +20,14 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
+      height: 52,
       child: ElevatedButton(
         onPressed: loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 4),
+          elevation: 0,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
           ),

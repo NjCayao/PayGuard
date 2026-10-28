@@ -52,11 +52,16 @@ class SessionManager {
   Future<String?> deviceName() =>
       _bridge.secureGet(NativeBridge.keyDeviceName);
 
+  Future<String?> businessName() =>
+      _bridge.secureGet(NativeBridge.keyBusinessName);
+
   Future<void> saveLogin({
     required String token,
+    required String businessName,
     required String deviceName,
   }) async {
     await _bridge.secureSet(NativeBridge.keyToken, token);
+    await _bridge.secureSet(NativeBridge.keyBusinessName, businessName);
     await _bridge.secureSet(NativeBridge.keyDeviceName, deviceName);
     await _bridge.clearSessionInvalid();
     await syncBaseUrl();

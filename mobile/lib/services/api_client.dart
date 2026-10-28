@@ -20,13 +20,48 @@ class ApiException implements Exception {
 class LoginResult {
   const LoginResult({
     required this.token,
+    required this.businessName,
     required this.deviceId,
     required this.deviceName,
   });
 
   final String token;
+  final String businessName;
   final int deviceId;
   final String deviceName;
+}
+
+class DevicePayment {
+  const DevicePayment({
+    required this.id,
+    required this.amount,
+    required this.payerName,
+    required this.securityCode,
+    required this.receivedAt,
+  });
+
+  final int id;
+  final String? amount;
+  final String? payerName;
+  final String? securityCode;
+  final DateTime receivedAt;
+
+  static DevicePayment fromJson(Map<String, dynamic> json) {
+    return DevicePayment(
+      id: (json['id'] as num).toInt(),
+      amount: json['amount'] as String?,
+      payerName: json['payer_name'] as String?,
+      securityCode: json['security_code'] as String?,
+      receivedAt: DateTime.parse(json['received_at'] as String),
+    );
+  }
+}
+
+class PaymentList {
+  const PaymentList({required this.payments, required this.todayCount});
+
+  final List<DevicePayment> payments;
+  final int todayCount;
 }
 
 class ApiClient {
@@ -73,8 +108,42 @@ class ApiClient {
 
     return LoginResult(
       token: token,
+      businessName: (data['business_name'] as String?) ?? '',
       deviceId: (device['id'] as num?)?.toInt() ?? 0,
       deviceName: (device['name'] as String?) ?? '',
+    );
+  }
+
+  Future<PaymentList> fetchPayments({
+    required String token,
+    int limit = 20,
+  }) async {
+    final http.Response response = await _get(
+      '/api/device/payments?limit=$limit',
+      token: token,
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(_messageOf(response), statusCode: response.statusCode);
+    }
+
+    final Map<String, dynamic> decoded =
+        jsonDecode(response.body) as Map<String, dynamic>;
+    final Object? data = decoded['data'];
+    final Object? meta = decoded['meta'];
+    if (data is! List || meta is! Map<String, dynamic>) {
+      throw ApiException(
+        Strings.unexpectedResponse,
+        statusCode: response.statusCode,
+      );
+    }
+
+    return PaymentList(
+      payments: data
+          .whereType<Map<String, dynamic>>()
+          .map(DevicePayment.fromJson)
+          .toList(),
+      todayCount: (meta['today_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -94,6 +163,24 @@ class ApiClient {
       return response.statusCode == 200;
     } on ApiException {
       return false;
+    }
+  }
+
+  Future<http.Response> _get(String path, {required String token}) async {
+    try {
+      return await _client
+          .get(
+            Uri.parse('$_baseUrl$path'),
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(timeout);
+    } on TimeoutException {
+      throw ApiException(Strings.noConnection);
+    } on http.ClientException {
+      throw ApiException(Strings.noConnection);
     }
   }
 

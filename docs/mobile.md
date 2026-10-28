@@ -55,8 +55,9 @@ flutter build apk --release --dart-define=API_BASE_URL=https://staging.example.c
    allow PayGuard to start automatically so it keeps working after a
    reboot (the app has a button that opens its system settings page).
 
-The Status screen shows a checklist: when every item is green, the app
-is ready. "Send now" forces an immediate upload of anything pending.
+The Status screen shows a checklist while anything is missing and the
+day stats with recent payments once everything is green. Pull down to
+refresh; pending items upload automatically when there is internet.
 
 ## Hidden server address (local testing only)
 

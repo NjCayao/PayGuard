@@ -6,13 +6,14 @@ import 'package:http/testing.dart';
 import 'package:mobile/services/api_client.dart';
 
 void main() {
-  test('login parses token and device', () async {
+  test('login parses token, business and device', () async {
     final ApiClient api = ApiClient(
       client: MockClient((http.Request request) async {
         return http.Response(
           jsonEncode({
             'data': {
               'token': 'tok-1',
+              'business_name': 'Bodega Central',
               'device': {'id': 7, 'name': 'Xiaomi Redmi 12'},
             },
           }),
@@ -31,6 +32,7 @@ void main() {
     );
 
     expect(result.token, 'tok-1');
+    expect(result.businessName, 'Bodega Central');
     expect(result.deviceId, 7);
     expect(result.deviceName, 'Xiaomi Redmi 12');
   });
@@ -137,6 +139,65 @@ void main() {
 
     try {
       await api.heartbeat(token: 'dead');
+      fail('expected ApiException');
+    } on ApiException catch (error) {
+      expect(error.unauthorized, isTrue);
+    }
+  });
+
+  test('fetchPayments parses list and today count', () async {
+    String? path;
+    final ApiClient api = ApiClient(
+      client: MockClient((http.Request request) async {
+        path = '${request.url.path}?${request.url.query}';
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'id': 3,
+                'amount': '50.00',
+                'payer_name': 'JUAN PEREZ',
+                'security_code': '482',
+                'received_at': '2026-10-27T15:44:00.000Z',
+              },
+              {
+                'id': 2,
+                'amount': null,
+                'payer_name': null,
+                'security_code': null,
+                'received_at': '2026-10-27T14:00:00.000Z',
+              },
+            ],
+            'meta': {'today_count': 4},
+          }),
+          200,
+        );
+      }),
+      baseUrl: 'https://example.test',
+    );
+
+    final PaymentList list =
+        await api.fetchPayments(token: 'tok-1', limit: 5);
+
+    expect(path, '/api/device/payments?limit=5');
+    expect(list.todayCount, 4);
+    expect(list.payments.length, 2);
+    expect(list.payments[0].payerName, 'JUAN PEREZ');
+    expect(list.payments[0].securityCode, '482');
+    expect(list.payments[0].amount, '50.00');
+    expect(list.payments[1].payerName, isNull);
+  });
+
+  test('fetchPayments with revoked token throws unauthorized', () async {
+    final ApiClient api = ApiClient(
+      client: MockClient((_) async {
+        return http.Response('{}', 401);
+      }),
+      baseUrl: 'https://example.test',
+    );
+
+    try {
+      await api.fetchPayments(token: 'dead');
       fail('expected ApiException');
     } on ApiException catch (error) {
       expect(error.unauthorized, isTrue);

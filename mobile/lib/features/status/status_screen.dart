@@ -3,14 +3,21 @@ import 'package:http/http.dart' as http;
 
 import '../../core/config.dart';
 import '../../core/strings/strings.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/app_scaffold.dart';
-import '../../core/widgets/checklist_item.dart';
+import '../../core/widgets/info_box.dart';
 import '../../core/widgets/notice_banner.dart';
+import '../../core/widgets/payment_row.dart';
+import '../../core/widgets/stat_box.dart';
+import '../../core/widgets/status_header.dart';
+import '../../core/widgets/step_row.dart';
 import '../../services/api_client.dart';
 import '../../services/native_bridge.dart';
 import '../../services/session.dart';
+import '../account/account_screen.dart';
 import '../history/history_screen.dart';
 import '../login/login_screen.dart';
 
@@ -20,23 +27,28 @@ class _StatusData {
     required this.sdkInt,
     required this.batteryExempt,
     required this.token,
-    required this.deviceName,
+    required this.businessName,
     required this.sessionInvalid,
     required this.pending,
-    required this.lastSentAt,
+    required this.lastContact,
   });
 
   final bool listenerEnabled;
   final int sdkInt;
   final bool batteryExempt;
   final String? token;
-  final String deviceName;
+  final String businessName;
   final bool sessionInvalid;
   final int pending;
-  final DateTime? lastSentAt;
+  final DateTime? lastContact;
 
   bool get sessionOk => token != null && !sessionInvalid;
   bool get ready => listenerEnabled && batteryExempt && sessionOk;
+
+  int get missingCount =>
+      [!listenerEnabled, !batteryExempt, !sessionOk]
+          .where((bool missing) => missing)
+          .length;
 }
 
 class StatusScreen extends StatefulWidget {
@@ -53,13 +65,15 @@ class StatusScreen extends StatefulWidget {
   State<StatusScreen> createState() => _StatusScreenState();
 }
 
-class _StatusScreenState extends State<StatusScreen> with WidgetsBindingObserver {
+class _StatusScreenState extends State<StatusScreen>
+    with WidgetsBindingObserver {
   _StatusData? _data;
+  PaymentList? _payments;
   bool _loading = true;
   String? _error;
-  String? _connectionMessage;
-  bool _checkingConnection = false;
-  bool _showRestrictedGuide = false;
+  String? _paymentsError;
+
+  static const int _recentLimit = 5;
 
   @override
   void initState() {
@@ -85,6 +99,7 @@ class _StatusScreenState extends State<StatusScreen> with WidgetsBindingObserver
     setState(() {
       _loading = true;
       _error = null;
+      _paymentsError = null;
     });
     try {
       final bool listener = await widget.bridge.isListenerEnabled();
@@ -92,10 +107,28 @@ class _StatusScreenState extends State<StatusScreen> with WidgetsBindingObserver
       final bool battery =
           await widget.bridge.isIgnoringBatteryOptimizations();
       final String? token = await widget.session.token();
-      final String device = await widget.session.deviceName() ?? '';
+      final String business = await widget.session.businessName() ?? '';
       final bool invalid = await widget.bridge.isSessionInvalid();
       final int pending = await widget.bridge.pendingCount();
-      final DateTime? lastSent = await widget.bridge.lastSentAt();
+      final DateTime? contact = await widget.bridge.lastContactAt();
+
+      PaymentList? payments;
+      if (token != null && !invalid) {
+        try {
+          final String baseUrl = await widget.session.baseUrl();
+          final ApiClient api =
+              ApiClient(client: http.Client(), baseUrl: baseUrl);
+          payments = await api.fetchPayments(
+            token: token,
+            limit: _recentLimit,
+          );
+        } on ApiException catch (error) {
+          _paymentsError = error.message;
+          if (error.unauthorized) {
+            await widget.bridge.triggerSync();
+          }
+        }
+      }
 
       if (!mounted) {
         return;
@@ -106,11 +139,12 @@ class _StatusScreenState extends State<StatusScreen> with WidgetsBindingObserver
           sdkInt: sdk,
           batteryExempt: battery,
           token: token,
-          deviceName: device,
+          businessName: business,
           sessionInvalid: invalid,
           pending: pending,
-          lastSentAt: lastSent,
+          lastContact: contact,
         );
+        _payments = payments;
         _loading = false;
       });
     } catch (_) {
@@ -122,96 +156,6 @@ class _StatusScreenState extends State<StatusScreen> with WidgetsBindingObserver
         _loading = false;
       });
     }
-  }
-
-  Future<void> _checkConnection() async {
-    final String? token = _data?.token;
-    if (token == null) {
-      return;
-    }
-    setState(() {
-      _checkingConnection = true;
-      _connectionMessage = null;
-    });
-    try {
-      final String baseUrl = await widget.session.baseUrl();
-      final ApiClient api = ApiClient(client: http.Client(), baseUrl: baseUrl);
-      await api.heartbeat(token: token);
-      await widget.bridge.clearSessionInvalid();
-      if (!mounted) {
-        return;
-      }
-      setState(() => _connectionMessage = Strings.connectionOk);
-      await _load();
-    } on ApiException catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _connectionMessage = error.message);
-      if (error.unauthorized) {
-        await _load();
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _checkingConnection = false);
-      }
-    }
-  }
-
-  Future<void> _sendNow() async {
-    await widget.bridge.triggerSync();
-    await _load();
-  }
-
-  Future<void> _confirmLogout() async {
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(Strings.logoutTitle),
-          content: const Text(Strings.logoutConfirm),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(Strings.logoutCancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(Strings.logoutConfirmButton),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
-    final String? token = _data?.token;
-    if (token != null) {
-      try {
-        final String baseUrl = await widget.session.baseUrl();
-        final ApiClient api =
-            ApiClient(client: http.Client(), baseUrl: baseUrl);
-        await api.logout(token: token);
-      } catch (_) {
-        // Best effort: the local data is cleared below either way.
-      }
-    }
-    await widget.session.logout();
-
-    if (!mounted) {
-      return;
-    }
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => LoginScreen(
-          session: widget.session,
-          bridge: widget.bridge,
-        ),
-      ),
-      (_) => false,
-    );
   }
 
   void _goToLogin() {
@@ -226,10 +170,21 @@ class _StatusScreenState extends State<StatusScreen> with WidgetsBindingObserver
     );
   }
 
+  void _openAccount() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AccountScreen(
+          session: widget.session,
+          bridge: widget.bridge,
+        ),
+      ),
+    );
+  }
+
   void _openHistory() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => HistoryScreen(bridge: widget.bridge),
+        builder: (_) => HistoryScreen(session: widget.session),
       ),
     );
   }
@@ -239,165 +194,232 @@ class _StatusScreenState extends State<StatusScreen> with WidgetsBindingObserver
     final _StatusData? data = _data;
 
     return AppScaffold(
-      title: Strings.statusTitle,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.history),
-          tooltip: Strings.historyTitle,
-          onPressed: _openHistory,
-        ),
-        IconButton(
-          icon: const Icon(Icons.logout),
-          tooltip: Strings.logoutTitle,
-          onPressed: _confirmLogout,
-        ),
-      ],
+      onRefresh: _load,
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : data == null
               ? Column(
                   children: [
                     NoticeBanner.error(_error ?? Strings.genericError),
-                    const SizedBox(height: AppSpacing.md),
-                    OutlinedButton(
+                    const SizedBox(height: AppSpacing.sm),
+                    TextButton(
                       onPressed: _load,
-                      child: const Text(Strings.retry),
+                      child: const Text(
+                        Strings.retry,
+                        style: AppTextStyles.action,
+                      ),
                     ),
                   ],
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (data.ready)
-                      const NoticeBanner.ok(Strings.statusReady)
-                    else
-                      const NoticeBanner.warning(Strings.statusNotReady),
+                    _header(data),
                     const SizedBox(height: AppSpacing.md),
-                    ChecklistItem(
-                      title: Strings.notificationsTitle,
-                      description: data.listenerEnabled
-                          ? Strings.notificationsOk
-                          : Strings.notificationsMissing,
-                      status: data.listenerEnabled
-                          ? ChecklistStatus.ok
-                          : ChecklistStatus.pending,
-                      actionLabel: data.listenerEnabled
-                          ? null
-                          : Strings.notificationsButton,
-                      onAction: data.listenerEnabled
-                          ? null
-                          : widget.bridge.openNotificationListenerSettings,
-                      extra: !data.listenerEnabled && data.sdkInt >= 33
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextButton(
-                                  onPressed: () => setState(() =>
-                                      _showRestrictedGuide =
-                                          !_showRestrictedGuide),
-                                  child: const Text(Strings.restrictedTitle),
-                                ),
-                                if (_showRestrictedGuide)
-                                  const Text(
-                                    Strings.restrictedSteps,
-                                    style: AppTextStyles.small,
-                                  ),
-                              ],
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    ChecklistItem(
-                      title: Strings.batteryTitle,
-                      description: data.batteryExempt
-                          ? Strings.batteryOk
-                          : Strings.batteryMissing,
-                      status: data.batteryExempt
-                          ? ChecklistStatus.ok
-                          : ChecklistStatus.pending,
-                      actionLabel:
-                          data.batteryExempt ? null : Strings.batteryButton,
-                      onAction: data.batteryExempt
-                          ? null
-                          : widget.bridge.requestIgnoreBatteryOptimizations,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    ChecklistItem(
-                      title: Strings.sessionTitle,
-                      description: _sessionDescription(data),
-                      status: data.sessionOk
-                          ? ChecklistStatus.ok
-                          : ChecklistStatus.pending,
-                      actionLabel: data.sessionOk
-                          ? Strings.connectionButton
-                          : Strings.sessionButton,
-                      onAction: data.sessionOk
-                          ? (_checkingConnection ? null : _checkConnection)
-                          : _goToLogin,
-                      extra: _connectionMessage == null
-                          ? null
-                          : Text(
-                              _connectionMessage!,
-                              style: AppTextStyles.small,
-                            ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    ChecklistItem(
-                      title: Strings.queueTitle,
-                      description: _queueDescription(data),
-                      status: data.pending == 0
-                          ? ChecklistStatus.ok
-                          : ChecklistStatus.pending,
-                      actionLabel: Strings.queueSendNow,
-                      onAction: _sendNow,
-                      extra: Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: _openHistory,
-                          child: const Text(Strings.queueSeeAll),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    ChecklistItem(
-                      title: Strings.autostartTitle,
-                      description: Strings.autostartBody,
-                      status: ChecklistStatus.ok,
-                      actionLabel: Strings.autostartButton,
-                      onAction: widget.bridge.openAppSettings,
-                    ),
+                    _statusBlock(data),
                     const SizedBox(height: AppSpacing.md),
-                    Center(
-                      child: Text(
-                        '${Strings.appName} ${AppConfig.appVersion}',
-                        style: AppTextStyles.small,
-                      ),
-                    ),
+                    if (data.ready) ...[
+                      _stats(data),
+                      const SizedBox(height: AppSpacing.md),
+                      _recent(),
+                    ] else ...[
+                      _checklist(data),
+                    ],
                   ],
                 ),
     );
   }
 
-  String _sessionDescription(_StatusData data) {
-    if (data.token == null) {
-      return Strings.sessionMissing;
-    }
-    if (data.sessionInvalid) {
-      return Strings.sessionInvalid;
-    }
-    if (data.deviceName.isEmpty) {
-      return Strings.sessionActive;
-    }
-    return data.deviceName;
+  Widget _header(_StatusData data) {
+    return Row(
+      children: [
+        const AppLogo(size: 28),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            data.businessName.isEmpty
+                ? Strings.appName
+                : data.businessName,
+            style: AppTextStyles.bodyBold,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.account_circle_outlined),
+          color: AppColors.muted,
+          onPressed: _openAccount,
+        ),
+      ],
+    );
   }
 
-  String _queueDescription(_StatusData data) {
-    final String last = data.lastSentAt == null
-        ? Strings.queueNever
-        : AppConfig.formatDateTime(data.lastSentAt!.toLocal());
-    if (data.pending == 0 && data.lastSentAt == null) {
-      return Strings.queueEmpty;
+  Widget _statusBlock(_StatusData data) {
+    if (data.ready) {
+      return const StatusHeader(
+        dotColor: AppColors.successDot,
+        label: Strings.readyLabel,
+        labelColor: AppColors.primaryDark,
+        title: Strings.readyTitle,
+        subtitle: Strings.readySubtitle,
+      );
     }
-    return '${Strings.queueLastSent}: $last\n${data.pending} ${Strings.queuePending}';
+    return StatusHeader(
+      dotColor: AppColors.warningDot,
+      label: Strings.incompleteLabel,
+      labelColor: AppColors.warningText,
+      title: Strings.incompleteTitle(data.missingCount),
+      subtitle: Strings.incompleteSubtitle,
+    );
+  }
+
+  Widget _checklist(_StatusData data) {
+    return Column(
+      children: [
+        StepRow(
+          icon: Icons.notifications_outlined,
+          title: Strings.rowNotifications,
+          detail: Strings.rowNotificationsDetail,
+          done: data.listenerEnabled,
+          actionLabel:
+              data.listenerEnabled ? null : Strings.actionActivate,
+          onAction: data.listenerEnabled
+              ? null
+              : widget.bridge.openNotificationListenerSettings,
+        ),
+        const Divider(),
+        StepRow(
+          icon: Icons.bolt_outlined,
+          title: Strings.rowAlwaysOn,
+          detail: Strings.rowAlwaysOnDetail,
+          done: data.batteryExempt,
+          actionLabel:
+              data.batteryExempt ? null : Strings.actionAllow,
+          onAction: data.batteryExempt
+              ? null
+              : widget.bridge.requestIgnoreBatteryOptimizations,
+        ),
+        const Divider(),
+        StepRow(
+          icon: Icons.cloud_outlined,
+          title: Strings.rowConnected,
+          detail: _connectionDetail(data),
+          done: data.sessionOk,
+          actionLabel: data.sessionOk ? null : Strings.actionLogin,
+          onAction: data.sessionOk ? null : _goToLogin,
+        ),
+        if (!data.listenerEnabled && data.sdkInt >= 33) ...[
+          const SizedBox(height: AppSpacing.sm),
+          const InfoBox(
+            title: Strings.restrictedTitle,
+            body: Strings.restrictedSteps,
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _connectionDetail(_StatusData data) {
+    if (!data.sessionOk) {
+      return Strings.rowSessionExpired;
+    }
+    if (data.lastContact == null) {
+      return Strings.neverContacted;
+    }
+    return AppConfig.formatRelative(
+      data.lastContact!.toLocal(),
+      DateTime.now(),
+    );
+  }
+
+  Widget _stats(_StatusData data) {
+    final String connection = data.lastContact == null
+        ? Strings.neverContacted
+        : AppConfig.formatRelative(
+            data.lastContact!.toLocal(),
+            DateTime.now(),
+          );
+    return Row(
+      children: [
+        Expanded(
+          child: StatBox(
+            label: Strings.statToday,
+            value: Strings.paymentsToday(_payments?.todayCount ?? 0),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: StatBox(
+            label: Strings.statPending,
+            value: '${data.pending}',
+          ),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: StatBox(
+            label: Strings.statConnection,
+            value: connection,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _recent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                Strings.recentTitle,
+                style: AppTextStyles.bodyBold,
+              ),
+            ),
+            TextButton(
+              onPressed: _openHistory,
+              child: const Text(
+                Strings.seeAll,
+                style: AppTextStyles.action,
+              ),
+            ),
+          ],
+        ),
+        if (_paymentsError != null) ...[
+          NoticeBanner.error(_paymentsError!),
+          TextButton(
+            onPressed: _load,
+            child: const Text(
+              Strings.retry,
+              style: AppTextStyles.action,
+            ),
+          ),
+        ] else if (_payments == null || _payments!.payments.isEmpty) ...[
+          const Text(
+            Strings.recentEmpty,
+            style: AppTextStyles.detail,
+          ),
+        ] else ...[
+          for (int i = 0; i < _payments!.payments.length; i++) ...[
+            if (i > 0) const Divider(),
+            _paymentRow(_payments!.payments[i]),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _paymentRow(DevicePayment payment) {
+    final String time =
+        AppConfig.formatTime(payment.receivedAt.toLocal());
+    final String detail = payment.securityCode == null
+        ? time
+        : '$time · ${Strings.codeLabel} ${payment.securityCode}';
+    return PaymentRow(
+      name: payment.payerName ?? Strings.unparsedPayment,
+      detail: detail,
+      amount: AppConfig.formatMoney(payment.amount),
+    );
   }
 }

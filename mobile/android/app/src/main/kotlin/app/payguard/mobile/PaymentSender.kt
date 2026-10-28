@@ -18,6 +18,7 @@ object PaymentSender {
     private const val BATCH_LIMIT = 100
     private const val STATE_PREFS = "payguard_state"
     private const val AUTH_FAILED_KEY = "auth_failed"
+    private const val LAST_CONTACT_KEY = "last_contact"
 
     fun sendPending(context: Context): SyncResult {
         val app = context.applicationContext
@@ -38,6 +39,7 @@ object PaymentSender {
                 200, 201 -> {
                     queue.delete(item.id)
                     queue.recordSent(item.title, item.text, item.postedMs)
+                    setLastContact(app)
                     sent++
                 }
                 401 -> {
@@ -79,6 +81,7 @@ object PaymentSender {
             when (post("$baseUrl/api/device/heartbeat", token, null)) {
                 200 -> {
                     setAuthFailed(app, false)
+                    setLastContact(app)
                     true
                 }
                 401 -> {
@@ -103,6 +106,21 @@ object PaymentSender {
             .getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
             .edit()
             .putBoolean(AUTH_FAILED_KEY, failed)
+            .apply()
+    }
+
+    fun getLastContactMs(context: Context): Long? {
+        val value = context.applicationContext
+            .getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+            .getLong(LAST_CONTACT_KEY, 0)
+        return if (value > 0) value else null
+    }
+
+    private fun setLastContact(context: Context) {
+        context.applicationContext
+            .getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(LAST_CONTACT_KEY, System.currentTimeMillis())
             .apply()
     }
 

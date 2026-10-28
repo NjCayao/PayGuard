@@ -60,6 +60,7 @@ object NativeBridge {
                 }
                 "pendingCount" -> result.success(QueueDb(app).pendingCount())
                 "lastSentAt" -> result.success(QueueDb(app).lastSentMs())
+                "lastContactAt" -> result.success(PaymentSender.getLastContactMs(app))
                 "sentHistory" -> result.success(sentHistory(app))
                 "clearQueue" -> {
                     QueueDb(app).clearAll()

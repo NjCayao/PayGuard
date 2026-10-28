@@ -65,7 +65,11 @@ void main() {
     final SessionManager manager = session();
     final String installId = await manager.installId();
     await manager.setBaseUrlOverride('http://10.0.2.2:8000');
-    await manager.saveLogin(token: 'tok-1', deviceName: 'Phone');
+    await manager.saveLogin(
+      token: 'tok-1',
+      businessName: 'Bodega Central',
+      deviceName: 'Phone',
+    );
 
     await manager.logout();
 
