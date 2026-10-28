@@ -35,6 +35,7 @@ class _PayGuardAppState extends State<PayGuardApp> {
     return MaterialApp(
       title: Strings.appName,
       theme: buildAppTheme(),
+      debugShowCheckedModeBanner: false,
       home: FutureBuilder<bool>(
         future: _hasSession,
         builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
