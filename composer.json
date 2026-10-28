@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "njcayao/payguard",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "PayGuard: a WhatsApp assistant that verifies Yape payments for small businesses, built with Meta models.",
+    "keywords": ["payguard", "whatsapp", "laravel", "yape", "fraud-detection"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
