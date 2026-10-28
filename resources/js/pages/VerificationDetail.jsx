@@ -37,7 +37,7 @@ export default function VerificationDetail() {
 
     if (error !== '' || item === null) {
         return (
-            <div>
+            <div className="max-w-3xl">
                 <p className={alertErrorClass}>{error}</p>
                 <Link to="/app/verificaciones" className={`${linkButtonClass} mt-4 inline-block`}>
                     Volver a verificaciones
@@ -49,7 +49,7 @@ export default function VerificationDetail() {
     const badge = verificationStatus(item);
 
     return (
-        <div>
+        <div className="max-w-3xl">
             <Link to="/app/verificaciones" className={linkButtonClass}>
                 ← Volver a verificaciones
             </Link>

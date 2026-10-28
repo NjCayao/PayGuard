@@ -133,7 +133,7 @@ export default function Account() {
     const blockedTitle = demo ? DEMO_BLOCKED_MESSAGE : undefined;
 
     return (
-        <div>
+        <div className="max-w-3xl">
             <h1 className="text-xl font-bold text-slate-900">Mi cuenta</h1>
             <p className="mt-1 text-sm text-slate-600">
                 {account?.name} · {account?.business?.name}

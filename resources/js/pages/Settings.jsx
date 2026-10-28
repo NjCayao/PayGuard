@@ -84,7 +84,7 @@ export default function Settings() {
     }
 
     return (
-        <div>
+        <div className="max-w-3xl">
             <h1 className="text-xl font-bold text-slate-900">Configuración</h1>
 
             {demo && <DemoNotice />}
