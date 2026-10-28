@@ -47,7 +47,7 @@ flowchart LR
    - El **motor de verificación** compara con los pagos recibidos y decide el resultado. Sin captura solo mira los últimos minutos (configurable), monto exacto, pagos sin reclamar y nombre por prefijo. Si ningún dispositivo dio señal en los últimos minutos (configurable) y no hay candidato, no responde "no encontrado": avisa que el celular no está conectado y alerta al dueño.
    - La respuesta al cajero sale de plantillas fijas en español (`config/payguard.php`): mismo resultado, mismo texto, sin redacción libre del modelo.
    - Se envía la respuesta al cajero y, si es sospechoso, la alerta al dueño.
-4. Si queda `pending`, el propio trabajo se vuelve a despachar con espera de 20 segundos hasta `recheck_until` y avisa el resultado final. Aparte, el scheduler cierra cada hora las verificaciones atascadas en `processing`.
+4. Si queda `pending`, el propio trabajo se vuelve a despachar con espera de 20 segundos hasta `recheck_until` y avisa el resultado final. Aparte, el scheduler cierra cada hora las verificaciones atascadas en `processing` y reinicia la cuenta demo cada noche a las 04:00 (Lima) con `payguard:demo-reset`.
 
 ## Rutas principales
 
@@ -63,6 +63,7 @@ flowchart LR
 | `POST /api/panel/register` | Registro del dueño: crea negocio y usuario juntos | Pública |
 | `POST /api/panel/login` | Inicio de sesión del dueño | Pública |
 | `POST /api/panel/logout`, `GET /api/panel/user` | Cierre de sesión y usuario actual | Sesión (Sanctum, mismo dominio) |
+| `GET /api/panel/account`, `PUT .../email`, `PUT .../password`, `PUT .../owner-whatsapp` | Mi cuenta: ver, cambiar correo, cambiar contraseña (cierra las otras sesiones) y WhatsApp del dueño | Sesión (Sanctum, mismo dominio) |
 | `/api/panel/cashiers` | Cajeros: listar, crear, editar, activar/desactivar, eliminar | Sesión (Sanctum, mismo dominio) |
 | `GET /api/panel/received-payments` | Pagos recibidos: listar con filtro por fecha | Sesión (Sanctum, mismo dominio) |
 | `GET /api/panel/verifications`, `GET .../{id}`, `GET .../{id}/image`, `GET .../{id}/audio` | Verificaciones: listar con filtros, detalle, imagen y audio privados | Sesión (Sanctum, mismo dominio) |
@@ -80,8 +81,9 @@ payguard/
 ├── app/
 │   ├── Http/Controllers/        # Controladores delgados
 │   ├── Jobs/                    # ProcessIncomingMessage, AnalyzeScreenshotVerification, AnalyzeQueryVerification, RecheckPendingVerification, UpdateOwnerAlertStatus
-│   ├── Console/Commands/        # ExpireStuckVerifications, SimulatePayment, ReparsePayments
+│   ├── Console/Commands/        # ExpireStuckVerifications, SimulatePayment, ReparsePayments, DemoSeedCommand, DemoResetCommand
 │   ├── Services/
+│   │   ├── Demo/                # DemoSeeder, DemoReceiptImage, DemoProtection
 │   │   ├── Meta/                # MetaModelClient, ScreenshotReader, ScreenshotData, VoiceTranscriber, PaymentQueryParser, PaymentQueryData
 │   │   ├── WhatsApp/            # WhatsAppClient, SignatureVerifier, MediaStore, OwnerAlerter
 │   │   ├── Device/              # DeviceAuthService, DevicePresence

@@ -30,6 +30,7 @@ erDiagram
 | match_window_minutes | smallint | Ventana de comparación, por defecto 10 |
 | recheck_minutes | smallint | Tiempo de nueva revisión si "aún no llega", por defecto 2 |
 | timezone | varchar(40) | Por defecto `America/Lima` |
+| is_demo | boolean | Por defecto `false`; en `true` bloquea cambios y envíos (cuenta demo) |
 | timestamps | | |
 
 ### users — el dueño (inicia sesión en el panel y en la app)

@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('verifications:expire-stuck')->hourly();
+
+Schedule::command('payguard:demo-reset')->dailyAt('04:00')->timezone('America/Lima');
