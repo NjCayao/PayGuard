@@ -5,7 +5,11 @@ namespace Tests\Feature\WhatsApp;
 use App\Jobs\ProcessIncomingMessage;
 use App\Models\Cashier;
 use App\Models\Verification;
+use App\Services\WhatsApp\MediaStore;
+use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -116,24 +120,112 @@ class ProcessIncomingMessageTest extends TestCase
         Storage::disk('local')->assertExists($verification->media_path);
     }
 
-    public function test_ignores_duplicate_message(): void
+    public function test_first_attempt_fails_and_retry_succeeds(): void
     {
-        $this->fakeMedia('image/jpeg', 'fake-image-bytes');
+        Http::fake([
+            'graph.facebook.com/*' => Http::response(['url' => 'https://media.example/dl', 'mime_type' => 'image/jpeg']),
+            'media.example/*' => Http::sequence()->pushStatus(500)->push('fake-image-bytes'),
+        ]);
 
         $cashier = Cashier::factory()->create();
 
-        $message = [
-            'wa_message_id' => 'wamid.dupe',
+        $job = new ProcessIncomingMessage([
+            'wa_message_id' => 'wamid.flaky',
             'from' => $cashier->whatsapp,
             'type' => 'image',
             'media_id' => 'media1',
             'text' => null,
-        ];
+        ]);
 
-        ProcessIncomingMessage::dispatch($message);
-        ProcessIncomingMessage::dispatch($message);
+        try {
+            $this->runJob($job);
+            $this->fail('The first attempt should throw.');
+        } catch (RequestException $e) {
+            $verification = Verification::where('wa_message_id', 'wamid.flaky')->firstOrFail();
+            $this->assertSame('processing', $verification->status);
+            $this->assertNull($verification->media_path);
+        }
+
+        $this->runJob($job);
+
+        $verification = Verification::where('wa_message_id', 'wamid.flaky')->firstOrFail();
+        $this->assertSame(hash('sha256', 'fake-image-bytes'), $verification->media_sha256);
+        Storage::disk('local')->assertExists($verification->media_path);
+    }
+
+    public function test_retry_resumes_processing_verification(): void
+    {
+        $this->fakeMedia('image/jpeg', 'fake-image-bytes');
+
+        $cashier = Cashier::factory()->create();
+        Verification::create([
+            'business_id' => $cashier->business_id,
+            'cashier_id' => $cashier->id,
+            'wa_message_id' => 'wamid.stuck',
+            'input_type' => 'image',
+            'status' => 'processing',
+        ]);
+
+        ProcessIncomingMessage::dispatch([
+            'wa_message_id' => 'wamid.stuck',
+            'from' => $cashier->whatsapp,
+            'type' => 'image',
+            'media_id' => 'media1',
+            'text' => null,
+        ]);
+
+        $verification = Verification::where('wa_message_id', 'wamid.stuck')->firstOrFail();
+        $this->assertSame(hash('sha256', 'fake-image-bytes'), $verification->media_sha256);
+        Storage::disk('local')->assertExists($verification->media_path);
+    }
+
+    public function test_ignores_duplicate_of_completed_verification(): void
+    {
+        Http::fake();
+
+        $cashier = Cashier::factory()->create();
+        Verification::create([
+            'business_id' => $cashier->business_id,
+            'cashier_id' => $cashier->id,
+            'wa_message_id' => 'wamid.done',
+            'input_type' => 'image',
+            'media_path' => 'whatsapp/1/1.jpg',
+            'media_sha256' => hash('sha256', 'fake-image-bytes'),
+            'status' => 'processing',
+        ]);
+
+        ProcessIncomingMessage::dispatch([
+            'wa_message_id' => 'wamid.done',
+            'from' => $cashier->whatsapp,
+            'type' => 'image',
+            'media_id' => 'media1',
+            'text' => null,
+        ]);
 
         $this->assertDatabaseCount('verifications', 1);
+        Http::assertNothingSent();
+    }
+
+    public function test_releases_job_when_message_is_locked(): void
+    {
+        Http::fake();
+
+        $cashier = Cashier::factory()->create();
+        Cache::lock('wa-msg:wamid.locked', 60)->acquire();
+
+        $job = (new ProcessIncomingMessage([
+            'wa_message_id' => 'wamid.locked',
+            'from' => $cashier->whatsapp,
+            'type' => 'image',
+            'media_id' => 'media1',
+            'text' => null,
+        ]))->withFakeQueueInteractions();
+
+        $this->runJob($job);
+
+        $job->assertReleased();
+        $this->assertDatabaseCount('verifications', 0);
+        Http::assertNothingSent();
     }
 
     public function test_replies_to_unsupported_type_without_verification(): void
@@ -204,12 +296,13 @@ class ProcessIncomingMessageTest extends TestCase
         ]))->failed(new RuntimeException('download failed'));
 
         $this->assertSame('error', $verification->fresh()->status);
-        $this->assertNotEmpty($verification->fresh()->reason);
+        $this->assertSame('No se pudo descargar o revisar el mensaje.', $verification->fresh()->reason);
         Http::assertSent(function ($request) use ($cashier) {
             $data = $request->data();
 
             return $data['to'] === $cashier->whatsapp
-                && $data['text']['body'] === 'No pude revisar este pago. Inténtalo de nuevo en un momento.';
+                && $data['text']['body'] === 'No pude revisar este pago. Inténtalo de nuevo en un momento.'
+                && $data['context']['message_id'] === 'wamid.broken';
         });
     }
 
@@ -238,5 +331,10 @@ class ProcessIncomingMessageTest extends TestCase
             'graph.facebook.com/*' => Http::response(['url' => 'https://media.example/dl', 'mime_type' => $mime]),
             'media.example/*' => Http::response($bytes),
         ]);
+    }
+
+    private function runJob(ProcessIncomingMessage $job): void
+    {
+        $job->handle(app(WhatsAppClient::class), app(MediaStore::class));
     }
 }

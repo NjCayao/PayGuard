@@ -14,7 +14,7 @@ class WhatsAppClient
 
     public function downloadMedia(string $url): string
     {
-        return $this->request()->get($url)->throw()->body();
+        return $this->request((int) config('payguard.whatsapp.media_timeout'))->get($url)->throw()->body();
     }
 
     public function sendText(string $to, string $body, ?string $replyTo = null): void
@@ -54,10 +54,11 @@ class WhatsAppClient
         ])->throw();
     }
 
-    private function request(): PendingRequest
+    private function request(?int $timeout = null): PendingRequest
     {
         return Http::withToken((string) config('payguard.whatsapp.token'))
-            ->timeout((int) config('payguard.whatsapp.timeout_seconds'))
+            ->connectTimeout((int) config('payguard.whatsapp.connect_timeout'))
+            ->timeout($timeout ?? (int) config('payguard.whatsapp.timeout'))
             ->acceptJson();
     }
 

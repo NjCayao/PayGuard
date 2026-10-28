@@ -57,7 +57,11 @@ return [
             'audio/aac',
         ],
         'unknown_dedup_hours' => (int) env('WHATSAPP_UNKNOWN_DEDUP_HOURS', 24),
-        'timeout_seconds' => (int) env('WHATSAPP_TIMEOUT_SECONDS', 30),
+        'connect_timeout' => (int) env('WHATSAPP_CONNECT_TIMEOUT', 15),
+        'timeout' => (int) env('WHATSAPP_TIMEOUT', 30),
+        'media_timeout' => (int) env('WHATSAPP_MEDIA_TIMEOUT', 60),
+        'lock_seconds' => (int) env('WHATSAPP_LOCK_SECONDS', 180),
+        'lock_release_seconds' => (int) env('WHATSAPP_LOCK_RELEASE_SECONDS', 5),
 
         'replies' => [
             'unauthorized' => 'Este número no está autorizado en PayGuard. Pide al dueño que te registre.',

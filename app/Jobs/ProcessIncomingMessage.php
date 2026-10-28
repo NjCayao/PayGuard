@@ -26,62 +26,25 @@ class ProcessIncomingMessage implements ShouldQueue
 
     public function handle(WhatsAppClient $client, MediaStore $media): void
     {
-        $from = PhoneNumbers::normalize($this->message['from'] ?? '');
         $waMessageId = (string) ($this->message['wa_message_id'] ?? '');
 
-        $cashier = $this->findCashier($from);
-
-        if ($cashier === null) {
-            $this->replyOnce(
-                "wa_unknown:{$waMessageId}",
-                $client,
-                $from,
-                $waMessageId,
-                (string) config('payguard.whatsapp.replies.unauthorized')
-            );
-
+        if ($waMessageId === '') {
             return;
         }
 
-        $type = $this->message['type'] ?? 'unsupported';
+        $lock = Cache::lock("wa-msg:{$waMessageId}", (int) config('payguard.whatsapp.lock_seconds'));
 
-        if ($type === 'unsupported') {
-            $this->replyOnce(
-                "wa_unsupported:{$waMessageId}",
-                $client,
-                $from,
-                $waMessageId,
-                (string) config('payguard.whatsapp.replies.unsupported')
-            );
+        if (! $lock->get()) {
+            $this->release((int) config('payguard.whatsapp.lock_release_seconds'));
 
             return;
         }
 
         try {
-            $verification = Verification::create([
-                'business_id' => $cashier->business_id,
-                'cashier_id' => $cashier->id,
-                'wa_message_id' => $waMessageId,
-                'input_type' => $type,
-                'status' => 'processing',
-            ]);
-        } catch (QueryException $e) {
-            if ($e->getCode() === '23000') {
-                return;
-            }
-
-            throw $e;
+            $this->process($client, $media, $waMessageId);
+        } finally {
+            $lock->release();
         }
-
-        if ($type === 'text') {
-            $verification->update(['extracted' => ['raw_text' => $this->message['text']]]);
-
-            return;
-        }
-
-        $metadata = $client->mediaMetadata((string) ($this->message['media_id'] ?? ''));
-        $bytes = $client->downloadMedia((string) ($metadata['url'] ?? ''));
-        $media->store($verification, $bytes, (string) ($metadata['mime_type'] ?? ''));
     }
 
     public function failed(Throwable $exception): void
@@ -112,6 +75,84 @@ class ProcessIncomingMessage implements ShouldQueue
                 'error' => $inner->getMessage(),
             ]);
         }
+    }
+
+    private function process(WhatsAppClient $client, MediaStore $media, string $waMessageId): void
+    {
+        $from = PhoneNumbers::normalize($this->message['from'] ?? '');
+
+        $cashier = $this->findCashier($from);
+
+        if ($cashier === null) {
+            $this->replyOnce(
+                "wa_unknown:{$waMessageId}",
+                $client,
+                $from,
+                $waMessageId,
+                (string) config('payguard.whatsapp.replies.unauthorized')
+            );
+
+            return;
+        }
+
+        $type = $this->message['type'] ?? 'unsupported';
+
+        if ($type === 'unsupported') {
+            $this->replyOnce(
+                "wa_unsupported:{$waMessageId}",
+                $client,
+                $from,
+                $waMessageId,
+                (string) config('payguard.whatsapp.replies.unsupported')
+            );
+
+            return;
+        }
+
+        $verification = Verification::where('wa_message_id', $waMessageId)->first();
+
+        if ($verification === null) {
+            try {
+                $verification = Verification::create([
+                    'business_id' => $cashier->business_id,
+                    'cashier_id' => $cashier->id,
+                    'wa_message_id' => $waMessageId,
+                    'input_type' => $type,
+                    'status' => 'processing',
+                ]);
+            } catch (QueryException $e) {
+                if ($e->getCode() !== '23000') {
+                    throw $e;
+                }
+
+                $verification = Verification::where('wa_message_id', $waMessageId)->firstOrFail();
+            }
+        }
+
+        if ($this->isComplete($verification)) {
+            return;
+        }
+
+        if ($verification->input_type === 'text') {
+            $verification->update(['extracted' => ['raw_text' => $this->message['text']]]);
+
+            return;
+        }
+
+        $metadata = $client->mediaMetadata((string) ($this->message['media_id'] ?? ''));
+        $bytes = $client->downloadMedia((string) ($metadata['url'] ?? ''));
+        $media->store($verification, $bytes, (string) ($metadata['mime_type'] ?? ''));
+    }
+
+    private function isComplete(Verification $verification): bool
+    {
+        if ($verification->status !== 'processing') {
+            return true;
+        }
+
+        return $verification->input_type === 'text'
+            ? $verification->extracted !== null
+            : $verification->media_path !== null;
     }
 
     private function findCashier(string $from): ?Cashier
