@@ -129,30 +129,27 @@ class ProcessIncomingMessage implements ShouldQueue
             }
         }
 
-        if ($this->isComplete($verification)) {
+        if ($verification->status !== 'processing') {
             return;
         }
 
         if ($verification->input_type === 'text') {
-            $verification->update(['extracted' => ['raw_text' => $this->message['text']]]);
+            if ($verification->extracted === null) {
+                $verification->update(['extracted' => ['raw_text' => $this->message['text']]]);
+            }
 
             return;
         }
 
-        $metadata = $client->mediaMetadata((string) ($this->message['media_id'] ?? ''));
-        $bytes = $client->downloadMedia((string) ($metadata['url'] ?? ''));
-        $media->store($verification, $bytes, (string) ($metadata['mime_type'] ?? ''));
-    }
-
-    private function isComplete(Verification $verification): bool
-    {
-        if ($verification->status !== 'processing') {
-            return true;
+        if ($verification->media_path === null) {
+            $metadata = $client->mediaMetadata((string) ($this->message['media_id'] ?? ''));
+            $bytes = $client->downloadMedia((string) ($metadata['url'] ?? ''));
+            $media->store($verification, $bytes, (string) ($metadata['mime_type'] ?? ''));
         }
 
-        return $verification->input_type === 'text'
-            ? $verification->extracted !== null
-            : $verification->media_path !== null;
+        if ($verification->input_type === 'image') {
+            AnalyzeScreenshotVerification::dispatch($verification->id);
+        }
     }
 
     private function findCashier(string $from): ?Cashier
