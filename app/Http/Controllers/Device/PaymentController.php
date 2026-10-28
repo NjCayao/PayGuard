@@ -20,6 +20,7 @@ class PaymentController extends Controller
         $limit = (int) ($request->validated()['limit'] ?? 20);
 
         $payments = ReceivedPayment::forBusiness($device->business_id)
+            ->withoutTrial()
             ->with('device')
             ->orderByDesc('received_at')
             ->limit($limit)
@@ -28,6 +29,7 @@ class PaymentController extends Controller
         $start = Carbon::now($device->business->timezone)->startOfDay()->utc();
 
         $todayCount = ReceivedPayment::forBusiness($device->business_id)
+            ->withoutTrial()
             ->whereBetween('received_at', [$start, $start->copy()->addDay()])
             ->count();
 

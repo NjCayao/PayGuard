@@ -86,7 +86,7 @@ class DemoOnlineTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_demo_mismatch_registers_a_failed_alert_without_sending(): void
+    public function test_demo_mismatch_registers_a_simulated_alert_without_sending(): void
     {
         Http::fake();
 
@@ -97,8 +97,8 @@ class DemoOnlineTest extends TestCase
         $alert = app(OwnerAlerter::class)->sendSuspiciousAlert($verification, 'El código de seguridad no coincide.');
 
         Http::assertNothingSent();
-        $this->assertSame('failed', $alert->status);
-        $this->assertSame((string) config('payguard.demo.blocked_message'), $alert->error);
+        $this->assertSame('simulated', $alert->status);
+        $this->assertNull($alert->error);
         $this->assertSame(1, OwnerAlert::forBusiness($business->id)->count());
     }
 
@@ -114,6 +114,6 @@ class DemoOnlineTest extends TestCase
 
         Http::assertNothingSent();
         $this->assertNotNull($alert);
-        $this->assertSame('failed', $alert->status);
+        $this->assertSame('simulated', $alert->status);
     }
 }

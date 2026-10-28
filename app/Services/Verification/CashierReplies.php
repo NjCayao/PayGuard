@@ -67,13 +67,19 @@ class CashierReplies
             $reason = mb_substr($reason, 0, 255);
         }
 
-        $display = self::DISPLAY[$outcome->reasonCode] ?? $outcome->status;
-        $emoji = (string) config("payguard.verification.status_emoji.{$display}", '');
-
         return [
             'reason' => $reason,
-            'reply' => $emoji === '' ? $reason : "{$emoji} {$reason}",
+            'reply' => $this->withEmoji($outcome->reasonCode, $outcome->status, $reason),
         ];
+    }
+
+    public function replyFor(Verification $verification): string
+    {
+        return $this->withEmoji(
+            $verification->reason_code,
+            $verification->status,
+            (string) ($verification->reason ?? '')
+        );
     }
 
     public function renderExpired(string $inputType = 'image'): array
@@ -88,6 +94,14 @@ class CashierReplies
     public static function formatAmount(?string $amount): string
     {
         return 'S/ '.number_format((float) $amount, 2, '.', ',');
+    }
+
+    private function withEmoji(?string $reasonCode, string $status, string $reason): string
+    {
+        $display = self::DISPLAY[$reasonCode ?? ''] ?? $status;
+        $emoji = (string) config("payguard.verification.status_emoji.{$display}", '');
+
+        return $emoji === '' ? $reason : "{$emoji} {$reason}";
     }
 
     private function fill(string $template, Verification $verification, VerificationOutcome $outcome, ?ReceivedPayment $payment): string

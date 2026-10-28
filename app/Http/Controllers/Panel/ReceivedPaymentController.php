@@ -14,6 +14,7 @@ class ReceivedPaymentController extends Controller
     public function index(ReceivedPaymentIndexRequest $request): AnonymousResourceCollection
     {
         $query = ReceivedPayment::forBusiness($request->user()->business_id)
+            ->withoutTrial()
             ->with('device')
             ->orderByDesc('received_at');
 

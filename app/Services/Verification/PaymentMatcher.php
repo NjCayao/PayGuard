@@ -102,6 +102,11 @@ class PaymentMatcher
         return ReceivedPayment::forBusiness($verification->business_id)
             ->where('wallet', $verification->wallet)
             ->whereNotNull('amount')
+            ->when(
+                $verification->trial_key !== null,
+                fn ($query) => $query->where('trial_key', $verification->trial_key),
+                fn ($query) => $query->whereNull('trial_key'),
+            )
             ->whereBetween('received_at', [
                 $paidAt->copy()->subMinutes($window),
                 $paidAt->copy()->addMinutes($window),

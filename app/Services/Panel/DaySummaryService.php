@@ -19,10 +19,12 @@ class DaySummaryService
         $end = $start->copy()->addDay();
 
         $payments = ReceivedPayment::forBusiness($business->id)
+            ->withoutTrial()
             ->whereBetween('received_at', [$start, $end]);
 
         $rows = Verification::forBusiness($business->id)
             ->listable()
+            ->withoutTrial()
             ->whereBetween('created_at', [$start, $end])
             ->selectRaw('status, reason_code, COUNT(*) as total')
             ->groupBy('status', 'reason_code')

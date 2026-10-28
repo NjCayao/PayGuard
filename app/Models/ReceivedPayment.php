@@ -25,6 +25,7 @@ class ReceivedPayment extends Model
         'raw_text',
         'parsed',
         'idempotency_key',
+        'trial_key',
     ];
 
     protected $casts = [
@@ -41,5 +42,10 @@ class ReceivedPayment extends Model
     public function verification(): HasOne
     {
         return $this->hasOne(Verification::class);
+    }
+
+    public function scopeWithoutTrial($query)
+    {
+        return $query->whereNull('trial_key');
     }
 }

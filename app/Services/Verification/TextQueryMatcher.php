@@ -73,6 +73,11 @@ class TextQueryMatcher
         $pool = ReceivedPayment::forBusiness($verification->business_id)
             ->where('wallet', $verification->wallet)
             ->whereNotNull('amount')
+            ->when(
+                $verification->trial_key !== null,
+                fn ($query) => $query->where('trial_key', $verification->trial_key),
+                fn ($query) => $query->whereNull('trial_key'),
+            )
             ->where('received_at', '>=', now()->subMinutes((int) config('payguard.query.window_minutes')))
             ->when($claimed,
                 fn ($query) => $query->whereHas('verification'),

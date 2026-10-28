@@ -27,6 +27,7 @@ class VerificationController extends Controller
     {
         $model = Verification::forBusiness(auth()->user()->business_id)
             ->listable()
+            ->withoutTrial()
             ->with(['cashier', 'receivedPayment', 'alerts'])
             ->findOrFail($verification);
 
@@ -46,6 +47,7 @@ class VerificationController extends Controller
     private function media(int $verification, string $inputType): BinaryFileResponse
     {
         $model = Verification::forBusiness(auth()->user()->business_id)
+            ->withoutTrial()
             ->findOrFail($verification);
 
         abort_if($model->input_type !== $inputType || $model->media_path === null, 404);

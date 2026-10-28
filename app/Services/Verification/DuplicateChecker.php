@@ -21,6 +21,11 @@ class DuplicateChecker
         return Verification::forBusiness($verification->business_id)
             ->where('id', '!=', $verification->id)
             ->where('status', '!=', 'error')
+            ->when(
+                $verification->trial_key !== null,
+                fn ($query) => $query->where('trial_key', $verification->trial_key),
+                fn ($query) => $query->whereNull('trial_key'),
+            )
             ->where(function ($query) use ($verification, $hasOperation, $hasSha, $hasCodeMinute) {
                 if ($hasOperation) {
                     $query->orWhere('operation_code', $verification->operation_code);

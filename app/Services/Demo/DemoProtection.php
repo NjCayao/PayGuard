@@ -17,4 +17,11 @@ class DemoProtection
             abort(403, self::message());
         }
     }
+
+    public static function ensureDemo(Business $business): void
+    {
+        if (! $business->isDemo()) {
+            abort(403, 'Solo disponible en la cuenta de demostración.');
+        }
+    }
 }

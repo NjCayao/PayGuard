@@ -11,6 +11,7 @@ use App\Http\Controllers\Panel\DeviceController as PanelDeviceController;
 use App\Http\Controllers\Panel\OwnerAlertController;
 use App\Http\Controllers\Panel\ReceivedPaymentController;
 use App\Http\Controllers\Panel\SummaryController;
+use App\Http\Controllers\Panel\TrialController;
 use App\Http\Controllers\Panel\VerificationController;
 use App\Http\Controllers\Panel\VerificationExportController;
 use App\Http\Controllers\WhatsApp\WebhookController;
@@ -58,6 +59,11 @@ Route::prefix('panel')->name('panel.')->group(function () {
 
         Route::get('/devices', [PanelDeviceController::class, 'index'])->name('devices.index');
         Route::post('/devices/{device}/unlink', [PanelDeviceController::class, 'unlink'])->name('devices.unlink');
+
+        Route::get('/trial/session', [TrialController::class, 'show'])->name('trial.session');
+        Route::post('/trial/image', [TrialController::class, 'storeImage'])->middleware('throttle:trial')->name('trial.image');
+        Route::post('/trial/query', [TrialController::class, 'storeQuery'])->middleware('throttle:trial')->name('trial.query');
+        Route::get('/trial/samples/{kind}', [TrialController::class, 'sample'])->name('trial.sample');
     });
 });
 

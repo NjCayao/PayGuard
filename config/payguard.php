@@ -240,6 +240,17 @@ return [
         'password' => env('PAYGUARD_DEMO_PASSWORD'),
         'business_name' => env('PAYGUARD_DEMO_BUSINESS_NAME', 'Bodega El Sol'),
         'blocked_message' => 'Cuenta de demostración: esta acción está desactivada.',
+        'trial' => [
+            'per_hour' => (int) env('PAYGUARD_TRIAL_PER_HOUR', 20),
+            'per_ip_per_hour' => (int) env('PAYGUARD_TRIAL_PER_IP_PER_HOUR', 60),
+            'max_image_mb' => (int) env('PAYGUARD_TRIAL_MAX_IMAGE_MB', 5),
+            'fake_amount' => env('PAYGUARD_TRIAL_FAKE_AMOUNT', '500.00'),
+            'payments' => [
+                ['amount' => '50.00', 'payer_name' => 'Juan Pérez', 'security_code' => '123'],
+                ['amount' => '20.00', 'payer_name' => 'Luz Quispe', 'security_code' => '456'],
+                ['amount' => '35.50', 'payer_name' => 'Carmen Ríos', 'security_code' => null],
+            ],
+        ],
     ],
 
     /*

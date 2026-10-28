@@ -17,7 +17,7 @@ class OwnerAlertIndexRequest extends FormRequest
         return [
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
-            'status' => ['nullable', Rule::in(['queued', 'sent', 'delivered', 'read', 'failed'])],
+            'status' => ['nullable', Rule::in(['queued', 'sent', 'delivered', 'read', 'failed', 'simulated'])],
         ];
     }
 

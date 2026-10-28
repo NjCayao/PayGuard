@@ -17,6 +17,7 @@ class OwnerAlertController extends Controller
         $filters = $request->validated();
 
         $query = OwnerAlert::forBusiness($business->id)
+            ->whereDoesntHave('verification', fn ($alert) => $alert->where('source', 'trial'))
             ->with('verification.cashier')
             ->orderByDesc('created_at');
 

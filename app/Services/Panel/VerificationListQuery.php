@@ -13,6 +13,7 @@ class VerificationListQuery
     {
         $query = Verification::forBusiness($business->id)
             ->listable()
+            ->withoutTrial()
             ->orderByDesc('created_at');
 
         if (! empty($filters['cashier_id'])) {

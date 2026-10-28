@@ -16,6 +16,8 @@ class Verification extends Model
         'business_id',
         'cashier_id',
         'wa_message_id',
+        'source',
+        'trial_key',
         'input_type',
         'media_path',
         'media_sha256',
@@ -65,5 +67,15 @@ class Verification extends Model
         return $query->where(function ($group) {
             $group->whereNull('reason_code')->orWhere('reason_code', '!=', 'text_help');
         });
+    }
+
+    public function scopeWithoutTrial($query)
+    {
+        return $query->where('source', 'whatsapp');
+    }
+
+    public function isTrial(): bool
+    {
+        return $this->source === 'trial';
     }
 }
