@@ -75,7 +75,7 @@ payguard/
 ├── app/
 │   ├── Http/Controllers/        # Controladores delgados
 │   ├── Jobs/                    # ProcessIncomingMessage, AnalyzeScreenshotVerification, RecheckPendingVerification
-│   ├── Console/Commands/        # ExpireStuckVerifications, SimulatePayment
+│   ├── Console/Commands/        # ExpireStuckVerifications, SimulatePayment, ReparsePayments
 │   ├── Services/
 │   │   ├── Meta/                # MetaModelClient, ScreenshotReader, ScreenshotData
 │   │   ├── WhatsApp/            # WhatsAppClient, SignatureVerifier, MediaStore, OwnerAlerter
