@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/config.dart';
 import '../../core/strings/strings.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_scaffold.dart';
@@ -33,6 +34,10 @@ class _AccountScreenState extends State<AccountScreen> {
   String _business = '';
   String _device = '';
   bool _loggingOut = false;
+  bool _voiceEnabled = true;
+  bool _voiceAlarm = false;
+  bool? _spanishAvailable;
+  bool _testingVoice = false;
 
   @override
   void initState() {
@@ -43,13 +48,63 @@ class _AccountScreenState extends State<AccountScreen> {
   Future<void> _load() async {
     final String business = await widget.session.businessName() ?? '';
     final String device = await widget.session.deviceName() ?? '';
+    VoiceStatus? voice;
+    try {
+      voice = await widget.bridge.voiceStatus();
+    } catch (_) {
+      voice = null;
+    }
     if (!mounted) {
       return;
     }
     setState(() {
       _business = business;
       _device = device;
+      if (voice != null) {
+        _voiceEnabled = voice.enabled;
+        _voiceAlarm = voice.alarmStream;
+        _spanishAvailable = voice.spanishAvailable;
+      }
     });
+  }
+
+  Future<void> _setVoiceEnabled(bool value) async {
+    setState(() => _voiceEnabled = value);
+    try {
+      await widget.bridge.setVoiceEnabled(value);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _voiceEnabled = !value);
+      }
+    }
+  }
+
+  Future<void> _setVoiceAlarm(bool value) async {
+    setState(() => _voiceAlarm = value);
+    try {
+      await widget.bridge.setVoiceAlarmStream(value);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _voiceAlarm = !value);
+      }
+    }
+  }
+
+  Future<void> _testVoice() async {
+    setState(() => _testingVoice = true);
+    try {
+      await widget.bridge.testVoice();
+      await Future<void>.delayed(const Duration(seconds: 2));
+      final VoiceStatus voice = await widget.bridge.voiceStatus();
+      if (mounted) {
+        setState(() => _spanishAvailable = voice.spanishAvailable);
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) {
+        setState(() => _testingVoice = false);
+      }
+    }
   }
 
   void _openHistory() {
@@ -127,6 +182,44 @@ class _AccountScreenState extends State<AccountScreen> {
             label: Strings.accountPayments,
             onTap: _openHistory,
           ),
+          const Divider(),
+          const Text(
+            Strings.voiceTitle,
+            style: AppTextStyles.bodyBold,
+          ),
+          _voiceSwitch(
+            title: Strings.voiceAnnounce,
+            detail: Strings.voiceAnnounceDetail,
+            value: _voiceEnabled,
+            onChanged: _setVoiceEnabled,
+          ),
+          const Divider(),
+          _voiceSwitch(
+            title: Strings.voiceAlarm,
+            detail: Strings.voiceAlarmDetail,
+            value: _voiceAlarm,
+            onChanged: _setVoiceAlarm,
+          ),
+          if (_spanishAvailable == false) ...[
+            const SizedBox(height: AppSpacing.sm),
+            const InfoBox(
+              title: Strings.voiceMissingTitle,
+              body: Strings.voiceMissingBody,
+            ),
+            TextButton(
+              onPressed: widget.bridge.openTtsSettings,
+              child: const Text(
+                Strings.voiceMissingAction,
+                style: AppTextStyles.action,
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          SecondaryButton(
+            label: Strings.voiceTest,
+            loading: _testingVoice,
+            onPressed: _testVoice,
+          ),
           const SizedBox(height: AppSpacing.sm),
           const InfoBox(
             title: Strings.autostartTitle,
@@ -144,6 +237,35 @@ class _AccountScreenState extends State<AccountScreen> {
               'v${AppConfig.appVersion}',
               style: AppTextStyles.detail,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _voiceSwitch({
+    required String title,
+    required String detail,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.body),
+                Text(detail, style: AppTextStyles.detail),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeThumbColor: AppColors.primary,
+            onChanged: onChanged,
           ),
         ],
       ),

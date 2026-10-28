@@ -84,4 +84,56 @@ class NativeBridge {
   Future<void> clearSessionInvalid() {
     return _channel.invokeMethod('clearSessionInvalid');
   }
+
+  Future<bool> voiceEnabled() async {
+    return (await _channel.invokeMethod<bool>('voiceEnabled')) ?? true;
+  }
+
+  Future<void> setVoiceEnabled(bool value) {
+    return _channel.invokeMethod('setVoiceEnabled', {'value': value});
+  }
+
+  Future<bool> voiceAlarmStream() async {
+    return (await _channel.invokeMethod<bool>('voiceAlarmStream')) ?? false;
+  }
+
+  Future<void> setVoiceAlarmStream(bool value) {
+    return _channel.invokeMethod('setVoiceAlarmStream', {'value': value});
+  }
+
+  Future<void> testVoice() {
+    return _channel.invokeMethod('voiceTest');
+  }
+
+  Future<VoiceStatus> voiceStatus() async {
+    final Map<dynamic, dynamic>? raw =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('voiceStatus');
+    if (raw == null) {
+      return const VoiceStatus(enabled: true, alarmStream: false);
+    }
+    return VoiceStatus(
+      enabled: raw['enabled'] as bool? ?? true,
+      alarmStream: raw['alarmStream'] as bool? ?? false,
+      spanishAvailable: raw['spanishAvailable'] as bool?,
+      locale: raw['locale'] as String?,
+    );
+  }
+
+  Future<void> openTtsSettings() {
+    return _channel.invokeMethod('openTtsSettings');
+  }
+}
+
+class VoiceStatus {
+  const VoiceStatus({
+    required this.enabled,
+    required this.alarmStream,
+    this.spanishAvailable,
+    this.locale,
+  });
+
+  final bool enabled;
+  final bool alarmStream;
+  final bool? spanishAvailable;
+  final String? locale;
 }

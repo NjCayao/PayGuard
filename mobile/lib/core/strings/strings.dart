@@ -64,6 +64,19 @@ class Strings {
   static const String autostartTitle = 'Inicio automático';
   static const String autostartBody =
       'En Xiaomi, Huawei y otras marcas, permite el inicio automático de PayGuard para que siga funcionando tras reiniciar.';
+
+  static const String voiceTitle = 'Anuncios de voz';
+  static const String voiceAnnounce = 'Anunciar pagos con voz';
+  static const String voiceAnnounceDetail =
+      'El celular dice cada Yape en voz alta, aun con la app cerrada';
+  static const String voiceAlarm = 'Sonar aunque el celular esté en silencio';
+  static const String voiceAlarmDetail =
+      'Usa el volumen de alarma. Con "No molestar" en silencio total no suena';
+  static const String voiceTest = 'Probar voz';
+  static const String voiceMissingTitle = 'Sin voz en español';
+  static const String voiceMissingBody =
+      'Este celular no tiene voz en español. Los anuncios se oyen igual, con otra voz. Instala una voz en español para oírlos bien.';
+  static const String voiceMissingAction = 'Abrir ajustes de voz';
   static const String logoutButton = 'Cerrar sesión';
   static const String logoutTitle = 'Cerrar sesión';
   static const String logoutConfirm =

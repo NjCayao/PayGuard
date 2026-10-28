@@ -84,6 +84,25 @@ object NativeBridge {
                     PaymentSender.setAuthFailed(app, false)
                     result.success(null)
                 }
+                "voiceEnabled" -> result.success(VoicePrefs(app).isEnabled())
+                "setVoiceEnabled" -> {
+                    VoicePrefs(app).setEnabled(call.argument<Boolean>("value") ?: true)
+                    result.success(null)
+                }
+                "voiceAlarmStream" -> result.success(VoicePrefs(app).useAlarmStream())
+                "setVoiceAlarmStream" -> {
+                    VoicePrefs(app).setAlarmStream(call.argument<Boolean>("value") ?: false)
+                    result.success(null)
+                }
+                "voiceTest" -> {
+                    VoiceAnnouncer.test(app)
+                    result.success(null)
+                }
+                "voiceStatus" -> result.success(voiceStatus(app))
+                "openTtsSettings" -> {
+                    activity.startActivity(Intent("com.android.settings.TTS_SETTINGS"))
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         } catch (e: Exception) {
@@ -98,6 +117,16 @@ object NativeBridge {
             "enabled_notification_listeners",
         ) ?: return false
         return enabled.split(":").any { it.equals(flat, ignoreCase = true) }
+    }
+
+    private fun voiceStatus(app: android.content.Context): Map<String, Any?> {
+        val status = VoiceAnnouncer.status(app)
+        return mapOf(
+            "enabled" to status.enabled,
+            "alarmStream" to status.alarmStream,
+            "spanishAvailable" to status.spanishAvailable,
+            "locale" to status.localeTag,
+        )
     }
 
     private fun sentHistory(activity: android.content.Context): List<Map<String, Any?>> {

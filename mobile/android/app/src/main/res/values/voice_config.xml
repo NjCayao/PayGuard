@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Voice-only local reader (Java regex syntax). Mirrors the structure of
+         config/payguard.php notifications.yape on the server, which stays the
+         official source. If the local reader finds no fields, the phone only
+         says "Yape recibido". -->
+    <string-array name="voice_ignore_patterns">
+        <item>\byapeaste\b</item>
+        <item>promoci[óo]n</item>
+        <item>\bpromo\b</item>
+        <item>descuento</item>
+        <item>sorteo</item>
+        <item>\bcompra\b</item>
+    </string-array>
+
+    <string-array name="voice_received_markers">
+        <item>te envi[óo] un pago</item>
+        <item>recibiste</item>
+        <item>confirmaci[óo]n de pago</item>
+    </string-array>
+
+    <string-array name="voice_payment_patterns">
+        <item>(?:^|\n)\s*(?:Yape!\s*)?(?&lt;payer&gt;[^\n]+?)\s+te envi[óo] un pago por\s*(?&lt;rest&gt;.+)$</item>
+    </string-array>
+
+    <string-array name="voice_amount_patterns">
+        <item>S/\.?\s*(?&lt;amount&gt;\d(?:[\d.,]*\d)?)</item>
+        <item>S/\.?\s*(?&lt;amount&gt;[\d.,]+)</item>
+        <item>(?&lt;amount&gt;[\d.,]+)\s*soles</item>
+    </string-array>
+
+    <!-- Preferred Spanish voices, in order. Any other "es" voice is used
+         as a last resort. -->
+    <string-array name="voice_locale_preference">
+        <item>es-PE</item>
+        <item>es-US</item>
+        <item>es-ES</item>
+    </string-array>
+
+    <!-- Same normalized text announced within this window is skipped. -->
+    <integer name="voice_duplicate_minutes">10</integer>
+</resources>

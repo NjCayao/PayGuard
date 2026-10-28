@@ -14,5 +14,9 @@ class BootReceiver : BroadcastReceiver() {
         val app = context.applicationContext
         Watchdog.schedule(app)
         SendWorker.enqueue(app)
+        try {
+            VoiceAnnouncer.warmUp(app)
+        } catch (_: Exception) {
+        }
     }
 }
