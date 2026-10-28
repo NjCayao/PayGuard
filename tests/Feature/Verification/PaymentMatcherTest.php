@@ -236,6 +236,17 @@ class PaymentMatcherTest extends TestCase
         $this->assertSame($payment->id, $outcome->receivedPaymentId);
     }
 
+    public function test_truncated_payer_name_does_not_block_match(): void
+    {
+        $verification = $this->verification();
+        $payment = $this->payment(['parsed' => false, 'payer_name' => 'Antoni Mon*']);
+
+        $outcome = app(PaymentMatcher::class)->match($verification);
+
+        $this->assertSame('verified', $outcome->status);
+        $this->assertSame($payment->id, $outcome->receivedPaymentId);
+    }
+
     private function verification(array $overrides = []): Verification
     {
         return Verification::factory()

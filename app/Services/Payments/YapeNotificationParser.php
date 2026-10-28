@@ -37,9 +37,12 @@ class YapeNotificationParser implements NotificationParser
         $payer = null;
         $rest = $text;
 
-        if (preg_match($rules['payment_pattern'], $text, $matches) === 1) {
-            $payer = $this->cleanName($matches['payer']);
-            $rest = $matches['rest'];
+        foreach ($rules['payment_patterns'] as $pattern) {
+            if (preg_match($pattern, $text, $matches) === 1) {
+                $payer = $this->cleanName($matches['payer']);
+                $rest = $matches['rest'];
+                break;
+            }
         }
 
         return new ParsedNotification(

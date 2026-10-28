@@ -19,6 +19,8 @@ class AmountsTest extends TestCase
         return [
             'plain' => ['50', '50.00'],
             'decimals' => ['50.00', '50.00'],
+            'one decimal' => ['0.1', '0.10'],
+            'trailing dot' => ['0.1.', null],
             'comma decimals' => ['50,00', '50.00'],
             'thousands dot decimal comma' => ['1.234,56', '1234.56'],
             'thousands comma decimal dot' => ['1,234.56', '1234.56'],

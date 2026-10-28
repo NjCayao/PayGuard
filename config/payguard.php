@@ -204,13 +204,19 @@ return [
             'received_markers' => [
                 '/te envi[óo] un pago/iu',
                 '/recibiste/iu',
+                '/confirmaci[óo]n de pago/iu',
             ],
-            'payment_pattern' => '/^Yape!\s*(?P<payer>.+?)\s*te envi[óo] un pago por\s*(?P<rest>.+)$/ius',
+            'payment_patterns' => [
+                '/(?:^|\n)\s*(?:Yape!\s*)?(?P<payer>[^\n]+?)\s+te envi[óo] un pago por\s*(?P<rest>.+)$/ius',
+                '/^Yape!\s*(?P<payer>.+?)\s*te envi[óo] un pago por\s*(?P<rest>.+)$/ius',
+            ],
             'amount_patterns' => [
+                '/S\/\.?\s*(?P<amount>\d(?:[\d.,]*\d)?)/u',
                 '/S\/\.?\s*(?P<amount>[\d.,]+)/u',
                 '/(?P<amount>[\d.,]+)\s*soles/iu',
             ],
             'security_code_patterns' => [
+                '/(?:c[óo]digo|c[óo]d\.?)\s*(?:de seguridad)?\s*(?:es\s*)?[:#-]?\s*(?<!\d)(?P<code>\d{3})(?!\d)/iu',
                 '/(?:c[óo]digo|c[óo]d\.?)\s*(?:de seguridad)?\s*[:#-]?\s*(?<!\d)(?P<code>\d{3})(?!\d)/iu',
             ],
             'operation_patterns' => [

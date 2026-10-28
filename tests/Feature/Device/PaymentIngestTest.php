@@ -169,6 +169,50 @@ class PaymentIngestTest extends TestCase
         ]);
     }
 
+    public function test_stores_real_shaped_notification_as_parsed(): void
+    {
+        $owner = User::factory()->create();
+
+        $response = $this->withToken($this->tokenFor($owner))
+            ->postJson('/api/device/payments', $this->payload([
+                'title' => 'Confirmación de Pago',
+                'text' => 'Antoni Mon* te envió un pago por S/ 0.1. El cód. de seguridad es: 944',
+                'big_text' => 'Antoni Mon* te envió un pago por S/ 0.1. El cód. de seguridad es: 944',
+            ]));
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.parsed', true);
+
+        $this->assertDatabaseHas('received_payments', [
+            'idempotency_key' => 'key-1',
+            'amount' => '0.10',
+            'payer_name' => 'Antoni Mon*',
+            'security_code' => '944',
+            'parsed' => true,
+        ]);
+    }
+
+    public function test_title_only_notification_is_saved_as_not_parsed(): void
+    {
+        $owner = User::factory()->create();
+
+        $response = $this->withToken($this->tokenFor($owner))
+            ->postJson('/api/device/payments', $this->payload([
+                'title' => 'Confirmación de Pago',
+                'text' => null,
+                'big_text' => null,
+            ]));
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.parsed', false);
+
+        $this->assertDatabaseHas('received_payments', [
+            'idempotency_key' => 'key-1',
+            'amount' => null,
+            'parsed' => false,
+        ]);
+    }
+
     public function test_revoked_token_cannot_save(): void
     {
         $owner = User::factory()->create();
