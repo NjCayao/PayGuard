@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Verification extends Model
 {
@@ -29,6 +30,7 @@ class Verification extends Model
         'edit_signals',
         'status',
         'reason',
+        'reason_code',
         'received_payment_id',
         'recheck_until',
         'ai_ms',
@@ -51,5 +53,17 @@ class Verification extends Model
     public function receivedPayment(): BelongsTo
     {
         return $this->belongsTo(ReceivedPayment::class);
+    }
+
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(OwnerAlert::class);
+    }
+
+    public function scopeListable($query)
+    {
+        return $query->where(function ($group) {
+            $group->whereNull('reason_code')->orWhere('reason_code', '!=', 'text_help');
+        });
     }
 }

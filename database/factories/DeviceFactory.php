@@ -21,4 +21,11 @@ class DeviceFactory extends Factory
             'last_payment_at' => null,
         ];
     }
+
+    public function online(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'last_seen_at' => now(),
+        ]);
+    }
 }

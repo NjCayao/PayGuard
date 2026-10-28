@@ -48,4 +48,9 @@ class Business extends Model
     {
         return $this->hasMany(Verification::class);
     }
+
+    public function ownerAlerts(): HasMany
+    {
+        return $this->hasMany(OwnerAlert::class);
+    }
 }
