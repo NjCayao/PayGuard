@@ -130,7 +130,7 @@ export default function Settings() {
                         id="settings-whatsapp"
                         type="text"
                         className={fieldClass}
-                        placeholder="51982226835"
+                        placeholder="51999888777"
                         value={form.owner_whatsapp}
                         onChange={(event) => update('owner_whatsapp', event.target.value)}
                     />

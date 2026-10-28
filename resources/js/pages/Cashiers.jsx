@@ -160,7 +160,7 @@ export default function Cashiers() {
                                 id="cashier-whatsapp"
                                 className={fieldClass}
                                 inputMode="tel"
-                                placeholder="+51 982 226 835"
+                                placeholder="+51 999 888 777"
                                 value={form.whatsapp}
                                 onChange={(event) => update('whatsapp', event.target.value)}
                             />

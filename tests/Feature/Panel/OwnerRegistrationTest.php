@@ -20,7 +20,7 @@ class OwnerRegistrationTest extends TestCase
             'email' => 'maria@example.com',
             'password' => 'secret123',
             'password_confirmation' => 'secret123',
-            'owner_whatsapp' => '+51 982 226 835',
+            'owner_whatsapp' => '+51 999 888 777',
             'cf-turnstile-response' => 'test-token',
         ], $overrides);
     }
@@ -44,7 +44,7 @@ class OwnerRegistrationTest extends TestCase
 
         $this->assertDatabaseHas('businesses', [
             'name' => 'Bodega El Sol',
-            'owner_whatsapp' => '51982226835',
+            'owner_whatsapp' => '51999888777',
             'match_window_minutes' => 10,
             'recheck_minutes' => 2,
             'timezone' => 'America/Lima',

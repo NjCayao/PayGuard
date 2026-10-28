@@ -45,7 +45,7 @@ flowchart LR
    - **Imagen:** Muse Spark lee la captura y devuelve JSON con esquema fijo.
    - **Texto o audio transcrito:** prefiltro de reglas y luego Muse Spark extrae billetera, monto y nombre de la consulta. Sin monto o sin intención de pago → saludo (`text_help`, fuera del panel).
    - El **motor de verificación** compara con los pagos recibidos y decide el resultado. Sin captura solo mira los últimos minutos (configurable), monto exacto, pagos sin reclamar y nombre por prefijo. Si ningún dispositivo dio señal en los últimos minutos (configurable) y no hay candidato, no responde "no encontrado": avisa que el celular no está conectado y alerta al dueño.
-   - Muse Spark redacta una respuesta corta en español a partir del resultado y el motivo.
+   - La respuesta al cajero sale de plantillas fijas en español (`config/payguard.php`): mismo resultado, mismo texto, sin redacción libre del modelo.
    - Se envía la respuesta al cajero y, si es sospechoso, la alerta al dueño.
 4. Si queda `pending`, el propio trabajo se vuelve a despachar con espera de 20 segundos hasta `recheck_until` y avisa el resultado final. Aparte, el scheduler cierra cada hora las verificaciones atascadas en `processing`.
 

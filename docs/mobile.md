@@ -97,7 +97,8 @@ committed.
   watchdog alarm (about every 15 minutes) re-arm the queue and send
   the heartbeat. No exact frequency is promised: in Doze mode Android
   delays alarms, which is fine because the panel only flags
-  "Desconectado" after 15 minutes without contact.
+  "Desconectado" after 10 minutes without contact
+  (`PAYGUARD_DEVICE_OFFLINE_MINUTES`).
 - The token and the server address live encrypted (AES/GCM with an
   Android Keystore key) so both Flutter and the native code can use
   them without Flutter being alive.

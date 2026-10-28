@@ -89,7 +89,7 @@ export default function Register() {
                     {field('owner_whatsapp', 'Tu WhatsApp', {
                         inputMode: 'tel',
                         autoComplete: 'tel',
-                        placeholder: '+51 982 226 835',
+                        placeholder: '+51 999 888 777',
                     })}
                     {field('password', 'Contraseña', {
                         type: 'password',

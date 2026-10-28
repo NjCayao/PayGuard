@@ -25,7 +25,7 @@ erDiagram
 |---|---|---|
 | id | bigint PK | |
 | name | varchar(120) | |
-| owner_whatsapp | varchar(20) | Número del dueño para alertas, solo dígitos (ej. 51982226835) |
+| owner_whatsapp | varchar(20) | Número del dueño para alertas, solo dígitos (ej. 51999888777) |
 | yape_holder_name | varchar(120) null | Nombre del titular como aparece en Yape; el destinatario de la captura debe coincidir |
 | match_window_minutes | smallint | Ventana de comparación, por defecto 10 |
 | recheck_minutes | smallint | Tiempo de nueva revisión si "aún no llega", por defecto 2 |
@@ -47,7 +47,7 @@ El registro crea el negocio y el usuario juntos en una transacción.
 | id | bigint PK | |
 | business_id | FK businesses | |
 | name | varchar(80) | |
-| whatsapp | varchar(20) | Solo dígitos (ej. 51982226835). **Único en todo el sistema**: así PayGuard sabe de qué negocio es cada consulta |
+| whatsapp | varchar(20) | Solo dígitos (ej. 51999888777). **Único en todo el sistema**: así PayGuard sabe de qué negocio es cada consulta |
 | is_active | boolean | Por defecto `true` |
 | timestamps | | |
 

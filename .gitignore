@@ -1,8 +1,12 @@
+*.aab
+*.apk
 *.log
 .DS_Store
 .env
 .env.backup
+.env.local
 .env.production
+.flutter-root
 .phpactor.json
 .phpunit.result.cache
 /.codex

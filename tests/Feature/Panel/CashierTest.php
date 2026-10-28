@@ -45,16 +45,16 @@ class CashierTest extends TestCase
 
         $response = $this->actingAs($owner)->postJson('/api/panel/cashiers', [
             'name' => 'Juan Perez',
-            'whatsapp' => '+51 982 226 835',
+            'whatsapp' => '+51 999 888 777',
         ]);
 
         $response->assertCreated();
-        $response->assertJsonPath('data.whatsapp', '51982226835');
+        $response->assertJsonPath('data.whatsapp', '51999888777');
 
         $this->assertDatabaseHas('cashiers', [
             'business_id' => $owner->business_id,
             'name' => 'Juan Perez',
-            'whatsapp' => '51982226835',
+            'whatsapp' => '51999888777',
             'is_active' => true,
         ]);
     }
@@ -65,12 +65,12 @@ class CashierTest extends TestCase
         $other = User::factory()->create();
         Cashier::factory()->create([
             'business_id' => $other->business_id,
-            'whatsapp' => '51982226835',
+            'whatsapp' => '51999888777',
         ]);
 
         $response = $this->actingAs($owner)->postJson('/api/panel/cashiers', [
             'name' => 'Juan Perez',
-            'whatsapp' => '51982226835',
+            'whatsapp' => '51999888777',
         ]);
 
         $response->assertUnprocessable();
@@ -82,12 +82,12 @@ class CashierTest extends TestCase
         $owner = User::factory()->create();
         Cashier::factory()->create([
             'business_id' => $owner->business_id,
-            'whatsapp' => '51982226835',
+            'whatsapp' => '51999888777',
         ]);
 
         $response = $this->actingAs($owner)->postJson('/api/panel/cashiers', [
             'name' => 'Juan Perez',
-            'whatsapp' => '+51 982-226 835',
+            'whatsapp' => '+51 999-888 777',
         ]);
 
         $response->assertUnprocessable();
