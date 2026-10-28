@@ -22,9 +22,16 @@ class VerificationResource extends JsonResource
             'status' => $this->status,
             'reason' => $this->reason,
             'reason_code' => $this->reason_code,
-            'has_image' => $this->media_path !== null,
-            'image_url' => $this->media_path !== null
+            'transcript' => $this->transcript,
+            'query_text' => $this->transcript ?? $this->extracted['raw_text'] ?? null,
+            'query_name' => $this->extracted['query']['payer_name'] ?? null,
+            'has_image' => $this->input_type === 'image' && $this->media_path !== null,
+            'image_url' => $this->input_type === 'image' && $this->media_path !== null
                 ? route('panel.verifications.image', $this->id)
+                : null,
+            'has_audio' => $this->input_type === 'audio' && $this->media_path !== null,
+            'audio_url' => $this->input_type === 'audio' && $this->media_path !== null
+                ? route('panel.verifications.audio', $this->id)
                 : null,
             'cashier' => [
                 'id' => $this->cashier->id,

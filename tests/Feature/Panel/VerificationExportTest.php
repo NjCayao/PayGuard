@@ -19,9 +19,11 @@ class VerificationExportTest extends TestCase
         $cashier = Cashier::factory()->create(['business_id' => $owner->business_id]);
 
         Verification::factory()->for($owner->business)->for($cashier)->create([
+            'input_type' => 'text',
             'status' => 'verified',
             'reason_code' => 'verified',
             'amount' => '50.00',
+            'extracted' => ['raw_text' => 'yape de 50'],
         ]);
         Verification::factory()->for($owner->business)->for($cashier)->create([
             'input_type' => 'text',
@@ -56,7 +58,56 @@ class VerificationExportTest extends TestCase
 
         $this->assertCount(2, $rows);
         $this->assertSame('Fecha', $rows[0][0]);
-        $this->assertSame('Verificado', $rows[1][7]);
+        $this->assertSame('Consulta', $rows[0][3]);
+        $this->assertSame('Texto', $rows[1][2]);
+        $this->assertSame('yape de 50', $rows[1][3]);
+        $this->assertSame('Verificado', $rows[1][8]);
+    }
+
+    public function test_exports_query_outcome_labels(): void
+    {
+        $owner = User::factory()->create();
+        $cashier = Cashier::factory()->create(['business_id' => $owner->business_id]);
+
+        Verification::factory()->for($owner->business)->for($cashier)->create([
+            'input_type' => 'text',
+            'status' => 'mismatch',
+            'reason_code' => 'multiple_matches',
+            'amount' => '50.00',
+        ]);
+        Verification::factory()->for($owner->business)->for($cashier)->create([
+            'input_type' => 'audio',
+            'status' => 'reused',
+            'reason_code' => 'already_confirmed',
+            'amount' => '20.00',
+        ]);
+
+        $response = $this->actingAs($owner)->get('/api/panel/verifications/export?format=xlsx');
+
+        $response->assertOk();
+
+        $path = tempnam(sys_get_temp_dir(), 'payguard-test-');
+        file_put_contents($path, $response->streamedContent());
+
+        $rows = [];
+        $reader = new XlsxReader;
+        $reader->open($path);
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            foreach ($sheet->getRowIterator() as $row) {
+                $rows[] = $row->toArray();
+            }
+        }
+
+        $reader->close();
+        @unlink($path);
+
+        $this->assertCount(3, $rows);
+
+        $labels = [$rows[1][8], $rows[2][8]];
+        sort($labels);
+
+        $this->assertSame(['Varios pagos: se pidió captura', 'Ya confirmado antes'], $labels);
     }
 
     public function test_exports_pdf_report(): void

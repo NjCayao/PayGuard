@@ -21,12 +21,32 @@ class DaySummaryService
         $payments = ReceivedPayment::forBusiness($business->id)
             ->whereBetween('received_at', [$start, $end]);
 
-        $counts = Verification::forBusiness($business->id)
+        $rows = Verification::forBusiness($business->id)
             ->listable()
             ->whereBetween('created_at', [$start, $end])
-            ->selectRaw('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
+            ->selectRaw('status, reason_code, COUNT(*) as total')
+            ->groupBy('status', 'reason_code')
+            ->get();
+
+        $counts = [];
+        $needsCapture = 0;
+        $alreadyConfirmed = 0;
+
+        foreach ($rows as $row) {
+            if ($row->reason_code === 'multiple_matches') {
+                $needsCapture += $row->total;
+
+                continue;
+            }
+
+            if ($row->reason_code === 'already_confirmed') {
+                $alreadyConfirmed += $row->total;
+
+                continue;
+            }
+
+            $counts[$row->status] = ($counts[$row->status] ?? 0) + $row->total;
+        }
 
         $alerts = OwnerAlert::forBusiness($business->id)
             ->whereBetween('created_at', [$start, $end])
@@ -47,6 +67,8 @@ class DaySummaryService
                     + (int) ($counts['mismatch'] ?? 0)
                     + (int) ($counts['error'] ?? 0),
                 'reused' => (int) ($counts['reused'] ?? 0),
+                'needs_capture' => $needsCapture,
+                'already_confirmed' => $alreadyConfirmed,
             ],
             'owner_alerts_sent' => $alerts,
             'device' => [

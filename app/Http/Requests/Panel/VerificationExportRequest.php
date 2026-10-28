@@ -26,6 +26,7 @@ class VerificationExportRequest extends FormRequest
             'status' => ['nullable', Rule::in([
                 'processing', 'pending', 'verified', 'not_found', 'mismatch', 'reused', 'error',
             ])],
+            'input_type' => ['nullable', Rule::in(['image', 'audio', 'text'])],
         ];
     }
 
@@ -39,6 +40,7 @@ class VerificationExportRequest extends FormRequest
             'date_to.after_or_equal' => 'La fecha final debe ser posterior a la inicial.',
             'cashier_id.exists' => 'El cajero no existe.',
             'status.in' => 'El estado no es válido.',
+            'input_type.in' => 'El tipo no es válido.',
         ];
     }
 }

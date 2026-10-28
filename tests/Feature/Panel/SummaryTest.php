@@ -80,6 +80,37 @@ class SummaryTest extends TestCase
         $this->assertNotNull($response->json('data.device.last_seen_at'));
     }
 
+    public function test_summary_separates_query_outcomes_from_failures(): void
+    {
+        $owner = User::factory()->create();
+        $business = $owner->business;
+        $cashier = Cashier::factory()->create(['business_id' => $business->id]);
+
+        Verification::factory()->for($business)->for($cashier)->create([
+            'input_type' => 'text',
+            'status' => 'mismatch',
+            'reason_code' => 'multiple_matches',
+        ]);
+        Verification::factory()->for($business)->for($cashier)->create([
+            'input_type' => 'audio',
+            'status' => 'reused',
+            'reason_code' => 'already_confirmed',
+        ]);
+        Verification::factory()->for($business)->for($cashier)->create([
+            'input_type' => 'image',
+            'status' => 'reused',
+            'reason_code' => 'reused',
+        ]);
+
+        $response = $this->actingAs($owner)->getJson('/api/panel/summary');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.verifications.failed', 0);
+        $response->assertJsonPath('data.verifications.reused', 1);
+        $response->assertJsonPath('data.verifications.needs_capture', 1);
+        $response->assertJsonPath('data.verifications.already_confirmed', 1);
+    }
+
     public function test_summary_reports_device_offline(): void
     {
         $owner = User::factory()->create();

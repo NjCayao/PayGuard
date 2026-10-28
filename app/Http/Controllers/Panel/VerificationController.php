@@ -35,10 +35,20 @@ class VerificationController extends Controller
 
     public function image(int $verification): BinaryFileResponse
     {
+        return $this->media($verification, 'image');
+    }
+
+    public function audio(int $verification): BinaryFileResponse
+    {
+        return $this->media($verification, 'audio');
+    }
+
+    private function media(int $verification, string $inputType): BinaryFileResponse
+    {
         $model = Verification::forBusiness(auth()->user()->business_id)
             ->findOrFail($verification);
 
-        abort_if($model->media_path === null, 404);
+        abort_if($model->input_type !== $inputType || $model->media_path === null, 404);
 
         $disk = Storage::disk(config('payguard.whatsapp.media_disk'));
 

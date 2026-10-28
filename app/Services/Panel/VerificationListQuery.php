@@ -23,6 +23,10 @@ class VerificationListQuery
             $query->where('status', $filters['status']);
         }
 
+        if (! empty($filters['input_type'])) {
+            $query->where('input_type', $filters['input_type']);
+        }
+
         $start = ! empty($filters['date_from'])
             ? Carbon::parse($filters['date_from'], $business->timezone)->startOfDay()->utc()
             : null;

@@ -4,7 +4,7 @@ import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { alertErrorClass, cardClass, linkButtonClass } from '../components/ui';
 import { formatDateTime, formatMoney } from '../utils/format';
-import { alertStatus, toneClass, verificationStatus } from '../utils/status';
+import { alertStatus, inputTypeLabel, toneClass, verificationStatus } from '../utils/status';
 
 function Row({ label, value }) {
     return (
@@ -64,6 +64,13 @@ export default function VerificationDetail() {
             <div className={`${cardClass} mt-4`}>
                 <dl className="divide-y divide-slate-100">
                     <Row label="Cajero" value={item.cashier.name} />
+                    <Row label="Tipo" value={inputTypeLabel[item.input_type] ?? item.input_type} />
+                    {item.query_text && (
+                        <Row label="Consulta" value={item.query_text} />
+                    )}
+                    {item.query_name && (
+                        <Row label="Nombre buscado" value={item.query_name} />
+                    )}
                     <Row label="Monto" value={formatMoney(item.amount)} />
                     <Row label="Destinatario" value={item.recipient_name ?? '—'} />
                     <Row label="Billetera" value={item.wallet ?? '—'} />
@@ -88,6 +95,13 @@ export default function VerificationDetail() {
                         alt="Captura del pago enviada por el cajero"
                         className="mt-3 max-h-[480px] rounded-md border border-slate-200"
                     />
+                </div>
+            )}
+
+            {item.has_audio && (
+                <div className={`${cardClass} mt-4`}>
+                    <h2 className="text-sm font-semibold text-slate-900">Audio recibido</h2>
+                    <audio src={item.audio_url} controls className="mt-3 w-full" />
                 </div>
             )}
 

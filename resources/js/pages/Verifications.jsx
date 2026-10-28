@@ -10,7 +10,7 @@ import {
     secondaryButtonClass,
 } from '../components/ui';
 import { formatDateTime, formatMoney } from '../utils/format';
-import { toneClass, verificationStatus } from '../utils/status';
+import { inputTypeLabel, toneClass, verificationStatus } from '../utils/status';
 
 const statusOptions = [
     { value: '', label: 'Todos' },
@@ -23,7 +23,14 @@ const statusOptions = [
     { value: 'error', label: 'Error' },
 ];
 
-const emptyFilters = { date_from: '', date_to: '', cashier_id: '', status: '' };
+const emptyFilters = { date_from: '', date_to: '', cashier_id: '', status: '', input_type: '' };
+
+const typeOptions = [
+    { value: '', label: 'Todos' },
+    { value: 'image', label: 'Imagen' },
+    { value: 'audio', label: 'Audio' },
+    { value: 'text', label: 'Texto' },
+];
 
 export default function Verifications() {
     const { user } = useAuth();
@@ -171,6 +178,23 @@ export default function Verifications() {
                         ))}
                     </select>
                 </div>
+                <div>
+                    <label htmlFor="filter-type" className={labelClass}>
+                        Tipo
+                    </label>
+                    <select
+                        id="filter-type"
+                        className={fieldClass}
+                        value={filters.input_type}
+                        onChange={(event) => updateFilter('input_type', event.target.value)}
+                    >
+                        {typeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {hasFilters && (
@@ -195,6 +219,7 @@ export default function Verifications() {
                             <tr className="border-b border-slate-200 text-slate-600">
                                 <th className="px-6 py-3 font-semibold">Fecha</th>
                                 <th className="px-4 py-3 font-semibold">Cajero</th>
+                                <th className="px-4 py-3 font-semibold">Tipo</th>
                                 <th className="px-4 py-3 font-semibold">Monto</th>
                                 <th className="px-4 py-3 font-semibold">Destinatario</th>
                                 <th className="px-4 py-3 font-semibold">Resultado</th>
@@ -215,6 +240,9 @@ export default function Verifications() {
                                             </Link>
                                         </td>
                                         <td className="px-4 py-3 text-slate-900">{item.cashier.name}</td>
+                                        <td className="px-4 py-3 text-slate-900">
+                                            {inputTypeLabel[item.input_type] ?? item.input_type}
+                                        </td>
                                         <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">
                                             {formatMoney(item.amount)}
                                         </td>

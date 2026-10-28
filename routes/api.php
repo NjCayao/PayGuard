@@ -41,6 +41,7 @@ Route::prefix('panel')->name('panel.')->group(function () {
         Route::get('/verifications', [VerificationController::class, 'index'])->name('verifications.index');
         Route::get('/verifications/{verification}', [VerificationController::class, 'show'])->name('verifications.show');
         Route::get('/verifications/{verification}/image', [VerificationController::class, 'image'])->name('verifications.image');
+        Route::get('/verifications/{verification}/audio', [VerificationController::class, 'audio'])->name('verifications.audio');
 
         Route::get('/owner-alerts', [OwnerAlertController::class, 'index'])->name('owner-alerts.index');
 

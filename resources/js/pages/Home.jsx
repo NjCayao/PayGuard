@@ -74,6 +74,14 @@ export default function Home() {
                                 label="Reutilizadas"
                                 value={summary.verifications.reused}
                             />
+                            <Stat
+                                label="Varios pagos: se pidió captura"
+                                value={summary.verifications.needs_capture}
+                            />
+                            <Stat
+                                label="Ya confirmados antes"
+                                value={summary.verifications.already_confirmed}
+                            />
                             <Stat label="Alertas enviadas" value={summary.owner_alerts_sent} />
                         </div>
                     </div>

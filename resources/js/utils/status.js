@@ -6,11 +6,25 @@ export const toneClass = {
     info: 'rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700',
 };
 
+export const inputTypeLabel = {
+    image: 'Imagen',
+    audio: 'Audio',
+    text: 'Texto',
+};
+
 export function verificationStatus(item) {
     if (item.reason_code === 'offline') {
         return item.status === 'pending'
             ? { label: 'Pendiente: celular desconectado', tone: 'warn' }
             : { label: 'No confirmado: celular desconectado', tone: 'warn' };
+    }
+
+    if (item.reason_code === 'multiple_matches') {
+        return { label: 'Varios pagos: se pidió captura', tone: 'wait' };
+    }
+
+    if (item.reason_code === 'already_confirmed') {
+        return { label: 'Ya confirmado antes', tone: 'info' };
     }
 
     switch (item.status) {

@@ -13,8 +13,14 @@ use OpenSpout\Writer\XLSX\Writer;
 class VerificationExporter
 {
     private const HEADERS = [
-        'Fecha', 'Cajero', 'Tipo', 'Billetera', 'Monto',
+        'Fecha', 'Cajero', 'Tipo', 'Consulta', 'Billetera', 'Monto',
         'Destinatario', 'Código', 'Resultado', 'Motivo',
+    ];
+
+    private const INPUT_LABELS = [
+        'image' => 'Imagen',
+        'audio' => 'Audio',
+        'text' => 'Texto',
     ];
 
     public function __construct(private VerificationListQuery $list) {}
@@ -79,10 +85,13 @@ class VerificationExporter
 
     private function row(Verification $verification, string $timezone): array
     {
+        $query = $verification->transcript ?? $verification->extracted['raw_text'] ?? '';
+
         return [
             $verification->created_at->copy()->setTimezone($timezone)->format('d/m/Y H:i'),
             $verification->cashier->name,
-            $verification->input_type,
+            self::INPUT_LABELS[$verification->input_type] ?? $verification->input_type,
+            mb_substr((string) $query, 0, 120),
             $verification->wallet ?? '',
             $verification->amount ?? '',
             $verification->recipient_name ?? '',
@@ -94,6 +103,14 @@ class VerificationExporter
 
     private function label(Verification $verification): string
     {
+        if ($verification->reason_code === 'multiple_matches') {
+            return 'Varios pagos: se pidió captura';
+        }
+
+        if ($verification->reason_code === 'already_confirmed') {
+            return 'Ya confirmado antes';
+        }
+
         if ($verification->reason_code === 'offline') {
             return $verification->status === 'pending'
                 ? 'Pendiente: celular desconectado'

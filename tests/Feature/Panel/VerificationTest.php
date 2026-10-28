@@ -82,11 +82,36 @@ class VerificationTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
+    public function test_list_filters_by_input_type(): void
+    {
+        $owner = User::factory()->create();
+        $cashier = Cashier::factory()->create(['business_id' => $owner->business_id]);
+
+        Verification::factory()->for($owner->business)->for($cashier)->create([
+            'input_type' => 'audio',
+            'status' => 'verified',
+            'reason_code' => 'verified',
+        ]);
+        Verification::factory()->for($owner->business)->for($cashier)->create([
+            'input_type' => 'text',
+            'status' => 'verified',
+            'reason_code' => 'verified',
+        ]);
+
+        $response = $this->actingAs($owner)->getJson('/api/panel/verifications?input_type=audio');
+
+        $this->assertCount(1, $response->json('data'));
+        $response->assertJsonPath('data.0.input_type', 'audio');
+    }
+
     public function test_list_rejects_invalid_filters(): void
     {
         $owner = User::factory()->create();
 
         $this->actingAs($owner)->getJson('/api/panel/verifications?status=bogus')
+            ->assertStatus(422);
+
+        $this->actingAs($owner)->getJson('/api/panel/verifications?input_type=bogus')
             ->assertStatus(422);
 
         $this->actingAs($owner)->getJson('/api/panel/verifications?date_from=2026-13-40')
@@ -149,6 +174,35 @@ class VerificationTest extends TestCase
         $response->assertJsonPath('data.alerts.0.status', 'delivered');
     }
 
+    public function test_show_includes_query_fields_and_audio_url(): void
+    {
+        $owner = User::factory()->create();
+        $cashier = Cashier::factory()->create(['business_id' => $owner->business_id]);
+
+        $verification = Verification::factory()->for($owner->business)->for($cashier)->create([
+            'input_type' => 'audio',
+            'status' => 'verified',
+            'reason_code' => 'verified',
+            'media_path' => 'whatsapp/1/1.ogg',
+            'transcript' => 'yape de cincuenta soles',
+            'extracted' => ['query' => ['payer_name' => 'Juan']],
+        ]);
+
+        $response = $this->actingAs($owner)->getJson("/api/panel/verifications/{$verification->id}");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.input_type', 'audio');
+        $response->assertJsonPath('data.transcript', 'yape de cincuenta soles');
+        $response->assertJsonPath('data.query_text', 'yape de cincuenta soles');
+        $response->assertJsonPath('data.query_name', 'Juan');
+        $response->assertJsonPath('data.has_audio', true);
+        $response->assertJsonPath(
+            'data.audio_url',
+            route('panel.verifications.audio', $verification->id)
+        );
+        $response->assertJsonPath('data.has_image', false);
+    }
+
     public function test_show_rejects_foreign_verification(): void
     {
         $owner = User::factory()->create();
@@ -189,6 +243,42 @@ class VerificationTest extends TestCase
         $stranger = User::factory()->create();
 
         $this->actingAs($stranger)->get("/api/panel/verifications/{$verification->id}/image")
+            ->assertNotFound();
+    }
+
+    public function test_audio_serves_media_only_to_owner(): void
+    {
+        Storage::fake('local');
+
+        $owner = User::factory()->create();
+        $cashier = Cashier::factory()->create(['business_id' => $owner->business_id]);
+
+        $path = "whatsapp/{$owner->business_id}/1.ogg";
+        Storage::disk('local')->put($path, 'fake-audio-bytes');
+
+        $verification = Verification::factory()->for($owner->business)->for($cashier)->create([
+            'input_type' => 'audio',
+            'media_path' => $path,
+        ]);
+        $image = Verification::factory()->for($owner->business)->for($cashier)->create([
+            'input_type' => 'image',
+            'media_path' => $path,
+        ]);
+
+        $response = $this->actingAs($owner)->get("/api/panel/verifications/{$verification->id}/audio");
+
+        $response->assertOk();
+        $this->assertSame(
+            'fake-audio-bytes',
+            file_get_contents($response->baseResponse->getFile()->getPathname())
+        );
+
+        $this->actingAs($owner)->get("/api/panel/verifications/{$image->id}/audio")
+            ->assertNotFound();
+
+        $stranger = User::factory()->create();
+
+        $this->actingAs($stranger)->get("/api/panel/verifications/{$verification->id}/audio")
             ->assertNotFound();
     }
 }
