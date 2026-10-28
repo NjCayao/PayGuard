@@ -37,7 +37,7 @@ El cajero reenvía a PayGuard la captura que le muestra el cliente (o le manda u
    Si es audio, **Muse Voice Transcribe** lo convierte en texto y Muse Spark extrae la consulta.
 6. **PayGuard busca la notificación real** que coincida. La captura muestra a quién se pagó, no quién pagó, así que el nombre de quien paga no se compara. Se compara: código de seguridad (si ambos lo tienen, debe coincidir; es la prueba más fuerte), mismo monto, hora cercana (ventana configurable, por defecto ±10 minutos), destinatario igual al titular Yape del negocio y número de operación no usado antes.
 7. **Responde al cajero por WhatsApp** en lenguaje simple:
-   - ✅ **Pago verificado:** *"Llegó S/ 50,00 de Juan P. por Yape a las 3:15 p. m."*
+   - ✅ **Pago verificado:** *"Yape recibido: S/ 50.00 de Juan P. · Cód. 944"*
    - ⏳ **Aún no llega:** no hay notificación todavía; PayGuard vuelve a revisar durante 2 minutos y avisa el resultado.
    - ❌ **No coincide:** explica el motivo (no llegó ningún pago así, el monto es distinto, la captura ya se usó antes, la fecha es vieja o la imagen muestra señales de edición).
 8. **Si es sospechoso**, PayGuard avisa también al dueño por WhatsApp y lo registra en el panel.
@@ -48,10 +48,11 @@ El cajero reenvía a PayGuard la captura que le muestra el cliente (o le manda u
 - Registro e inicio de sesión.
 - **Inicio:** resumen del día (pagos recibidos, verificaciones, sospechosos).
 - **Pagos recibidos:** lista de notificaciones capturadas por la app.
-- **Verificaciones:** cada consulta con su captura, los datos leídos por la IA, el resultado y el motivo.
+- **Verificaciones:** cada consulta con su captura, los datos leídos por la IA, el resultado y el motivo. Se exportan en Excel y PDF por rango de fechas.
 - **Cajeros:** agregar, activar o desactivar cajeros (nombre y número de WhatsApp).
 - **Dispositivo:** estado de la app Android vinculada (conectada, última notificación recibida).
-- **Configuración:** ventana de tiempo para comparar, número del dueño para alertas.
+- **Alertas:** cada aviso al dueño con su estado de entrega.
+- **Configuración:** titular del Yape, número del dueño para alertas y ventanas de tiempo.
 
 ### 5.2 App Android (Flutter)
 - Inicio de sesión con la cuenta del dueño.

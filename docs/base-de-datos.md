@@ -11,9 +11,11 @@ erDiagram
     businesses ||--o{ devices : "vincula"
     businesses ||--o{ received_payments : "recibe"
     businesses ||--o{ verifications : "registra"
+    businesses ||--o{ owner_alerts : "alerta"
     devices ||--o{ received_payments : "captura"
     cashiers ||--o{ verifications : "consulta"
     received_payments |o--o| verifications : "valida"
+    verifications ||--o{ owner_alerts : "genera"
 ```
 
 ## Tablas
@@ -101,10 +103,26 @@ La app se autentica con token de Sanctum ligado al dispositivo: el modelo Device
 | edit_signals | json null | Lista de textos con señales de posible edición |
 | status | enum(`processing`,`pending`,`verified`,`not_found`,`mismatch`,`reused`,`error`) | Por defecto `processing` |
 | reason | varchar(255) null | Motivo en español, el mismo que se responde |
+| reason_code | varchar(40) null | Código del motivo (`verified`, `pending`, `offline`, `stale`, `text_help`, …); el panel excluye `text_help` |
 | received_payment_id | FK received_payments null, **único** | Una notificación real valida una sola captura |
 | recheck_until | datetime null | Hasta cuándo seguir buscando si está `pending` |
 | ai_ms | int null | Tiempo de respuesta de la IA |
 | timestamps | | |
+
+### owner_alerts — alertas enviadas al dueño por WhatsApp
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | bigint PK | |
+| business_id | FK businesses | |
+| verification_id | FK verifications null | Verificación que la generó |
+| to | varchar(20) | Número del dueño, solo dígitos |
+| template | varchar(80) | Nombre de la plantilla usada |
+| reason | varchar(255) | Motivo enviado como cuarto parámetro |
+| wa_message_id | varchar(100) null **único** | Id del mensaje enviado, lo devuelve WhatsApp |
+| status | enum(`queued`,`sent`,`delivered`,`read`,`failed`) | Por defecto `queued`; lo actualizan los `statuses` del webhook |
+| error | varchar(255) null | Error si falló el envío o la entrega |
+| timestamps | | |
+Índice: `(business_id, created_at)` para la lista del panel.
 
 ### Tablas propias de Laravel
 `sessions`, `cache`, `jobs`, `failed_jobs`, `personal_access_tokens`, `password_reset_tokens`.
