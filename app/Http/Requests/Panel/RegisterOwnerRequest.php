@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Panel;
 
 use App\Services\PhoneNumbers;
+use App\Services\Security\TurnstileVerifier;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RegisterOwnerRequest extends FormRequest
@@ -23,12 +25,22 @@ class RegisterOwnerRequest extends FormRequest
 
     public function rules(): array
     {
+        $honeypot = (string) config('payguard.registration.honeypot_field', 'website');
+
         return [
             'business_name' => ['required', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'owner_whatsapp' => ['required', 'regex:/^\d{7,15}$/'],
+            $honeypot => ['nullable', 'size:0'],
+            'cf-turnstile-response' => ['required', function (string $attribute, mixed $value, Closure $fail): void {
+                $verifier = app(TurnstileVerifier::class);
+
+                if (! $verifier->passes(is_string($value) ? $value : null, $this->ip())) {
+                    $fail('La verificación anti-robots falló. Inténtalo de nuevo.');
+                }
+            }],
         ];
     }
 
@@ -45,6 +57,8 @@ class RegisterOwnerRequest extends FormRequest
             'password.confirmed' => 'Las contraseñas no coinciden.',
             'owner_whatsapp.required' => 'Escribe tu número de WhatsApp.',
             'owner_whatsapp.regex' => 'Escribe un número de WhatsApp válido.',
+            'website.size' => 'No se pudo crear la cuenta.',
+            'cf-turnstile-response.required' => 'Completa la verificación anti-robots.',
         ];
     }
 }

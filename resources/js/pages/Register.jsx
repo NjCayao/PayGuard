@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { errorMessage, fieldErrors } from '../api/client';
+import Turnstile from '../components/Turnstile';
 import {
     alertErrorClass,
     cardClass,
@@ -28,6 +29,8 @@ export default function Register() {
     const [errors, setErrors] = useState({});
     const [generalError, setGeneralError] = useState('');
     const [sending, setSending] = useState(false);
+    const [website, setWebsite] = useState('');
+    const [turnstileToken, setTurnstileToken] = useState('');
 
     function update(field, value) {
         setForm((current) => ({ ...current, [field]: value }));
@@ -58,7 +61,7 @@ export default function Register() {
         setGeneralError('');
 
         try {
-            await register(form);
+            await register({ ...form, website, 'cf-turnstile-response': turnstileToken });
             navigate('/app');
         } catch (error) {
             const validation = fieldErrors(error);
@@ -96,6 +99,22 @@ export default function Register() {
                         type: 'password',
                         autoComplete: 'new-password',
                     })}
+                    <input
+                        type="text"
+                        name="website"
+                        value={website}
+                        onChange={(event) => setWebsite(event.target.value)}
+                        tabIndex={-1}
+                        autoComplete="off"
+                        aria-hidden="true"
+                        style={{ position: 'absolute', left: '-9999px' }}
+                    />
+                    <div>
+                        <Turnstile onToken={setTurnstileToken} />
+                        {errors['cf-turnstile-response'] && (
+                            <p className={fieldErrorClass}>{errors['cf-turnstile-response'][0]}</p>
+                        )}
+                    </div>
                     <button type="submit" disabled={sending} className={primaryButtonClass}>
                         {sending ? 'Creando cuenta...' : 'Crear cuenta'}
                     </button>
