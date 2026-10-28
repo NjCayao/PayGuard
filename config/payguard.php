@@ -69,6 +69,7 @@ return [
             'unauthorized' => 'Este número no está autorizado en PayGuard. Pide al dueño que te registre.',
             'unsupported' => 'Envíame la captura del Yape (imagen) o un audio.',
             'error' => 'No pude revisar este pago. Inténtalo de nuevo en un momento.',
+            'text_help' => 'Hola, soy PayGuard, tu asistente para evitar pagos falsos con Yape. Mándame la captura del Yape del cliente, o escríbeme o dime en un audio "yape de 50", y te confirmo al instante si llegó.',
         ],
     ],
 
@@ -93,6 +94,15 @@ return [
     'cashiers_per_page' => 20,
 
     'received_payments_per_page' => 20,
+
+    'verifications_per_page' => 20,
+
+    'owner_alerts_per_page' => 20,
+
+    'exports' => [
+        'max_rows' => (int) env('PAYGUARD_EXPORT_MAX_ROWS', 2000),
+        'max_range_days' => (int) env('PAYGUARD_EXPORT_MAX_RANGE_DAYS', 31),
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -125,14 +135,17 @@ return [
             'not_found' => '❌',
             'mismatch' => '❌',
             'reused' => '❌',
+            'offline' => '⚠',
         ],
         'reasons' => [
-            'verified' => 'Llegó :amount de :payer por :wallet a las :time.',
+            'verified' => ':wallet recibido: :amount de :payer',
+            'verified_code_suffix' => ' · Cód. :code',
             'pending' => 'Todavía no llega el pago de :amount. Sigo revisando y te aviso.',
             'already_reviewing' => 'Ya estoy revisando esta captura.',
             'reused' => 'Esta captura ya se usó antes.',
             'not_found' => 'No llegó ningún pago de :amount.',
-            'stale' => 'La captura es del :date, muy vieja para revisarla.',
+            'stale' => 'No encontré ningún :wallet de :amount cerca de las :time.',
+            'offline' => 'El celular del negocio no está conectado. No puedo confirmar este pago.',
             'unreadable' => 'No pude leer los datos de la captura.',
             'mismatch_recipient' => 'El pago no es para este negocio.',
             'mismatch_code' => 'El código de seguridad no coincide.',
@@ -169,7 +182,8 @@ return [
     */
 
     'device' => [
-        'offline_minutes' => (int) env('PAYGUARD_DEVICE_OFFLINE_MINUTES', 15),
+        'offline_minutes' => (int) env('PAYGUARD_DEVICE_OFFLINE_MINUTES', 10),
+        'offline_alert_cooldown_minutes' => (int) env('PAYGUARD_OFFLINE_ALERT_COOLDOWN_MINUTES', 30),
         'login_throttle' => env('PAYGUARD_DEVICE_LOGIN_THROTTLE', '10,1'),
         'api_throttle' => env('PAYGUARD_DEVICE_API_THROTTLE', '120,1'),
     ],

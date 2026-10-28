@@ -20,8 +20,56 @@ class CashierRepliesTest extends TestCase
             $this->payment(),
         );
 
-        $this->assertSame('Llegó S/ 50.00 de Juan Perez por Yape a las 3:15 p. m.', $rendered['reason']);
-        $this->assertSame('✅ Llegó S/ 50.00 de Juan Perez por Yape a las 3:15 p. m.', $rendered['reply']);
+        $this->assertSame('Yape recibido: S/ 50.00 de Juan Perez', $rendered['reason']);
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez', $rendered['reply']);
+    }
+
+    public function test_verified_reply_includes_code_suffix_when_present(): void
+    {
+        $replies = app(CashierReplies::class);
+
+        $fromPayment = $replies->render(
+            $this->verification(),
+            new VerificationOutcome('verified', 'verified', receivedPaymentId: 7),
+            $this->payment(['security_code' => '944']),
+        );
+
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez · Cód. 944', $fromPayment['reply']);
+
+        $fromCapture = $replies->render(
+            $this->verification(['security_code' => '123']),
+            new VerificationOutcome('verified', 'verified', receivedPaymentId: 7),
+            $this->payment(),
+        );
+
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez · Cód. 123', $fromCapture['reply']);
+    }
+
+    public function test_verified_reply_without_payer_name(): void
+    {
+        $rendered = app(CashierReplies::class)->render(
+            $this->verification(),
+            new VerificationOutcome('verified', 'verified', receivedPaymentId: 7),
+            new ReceivedPayment([
+                'payer_name' => null,
+                'received_at' => Carbon::parse('2026-10-28 20:15:00', 'UTC'),
+            ]),
+        );
+
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de un cliente', $rendered['reply']);
+    }
+
+    public function test_offline_reply(): void
+    {
+        $rendered = app(CashierReplies::class)->render(
+            $this->verification(),
+            new VerificationOutcome('not_found', 'offline'),
+        );
+
+        $this->assertSame(
+            '⚠ El celular del negocio no está conectado. No puedo confirmar este pago.',
+            $rendered['reply']
+        );
     }
 
     public function test_pending_reply(): void
@@ -58,14 +106,14 @@ class CashierRepliesTest extends TestCase
         );
     }
 
-    public function test_stale_reply_shows_date(): void
+    public function test_stale_reply_shows_wallet_amount_and_time(): void
     {
         $rendered = app(CashierReplies::class)->render(
             $this->verification(['paid_at' => Carbon::parse('2026-10-20 20:00:00', 'UTC')]),
             new VerificationOutcome('not_found', 'stale'),
         );
 
-        $this->assertSame('❌ La captura es del 20 oct., muy vieja para revisarla.', $rendered['reply']);
+        $this->assertSame('❌ No encontré ningún Yape de S/ 50.00 cerca de las 3:00 p. m.', $rendered['reply']);
     }
 
     public function test_mismatch_amount_reply(): void
@@ -138,11 +186,11 @@ class CashierRepliesTest extends TestCase
         return $verification;
     }
 
-    private function payment(): ReceivedPayment
+    private function payment(array $overrides = []): ReceivedPayment
     {
-        return new ReceivedPayment([
+        return new ReceivedPayment(array_merge([
             'payer_name' => 'Juan Perez',
             'received_at' => Carbon::parse('2026-10-28 20:15:00', 'UTC'),
-        ]);
+        ], $overrides));
     }
 }

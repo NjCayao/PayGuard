@@ -65,6 +65,7 @@ class AnalyzeScreenshotVerification implements ShouldQueue
             $verification->update([
                 'status' => 'error',
                 'reason' => 'No se pudo leer la captura.',
+                'reason_code' => 'error',
             ]);
 
             if ($verification->cashier !== null) {

@@ -65,6 +65,7 @@ class ProcessIncomingMessage implements ShouldQueue
                 $verification?->update([
                     'status' => 'error',
                     'reason' => 'No se pudo descargar o revisar el mensaje.',
+                    'reason_code' => 'error',
                 ]);
                 $body = (string) config('payguard.whatsapp.replies.error');
             }
@@ -137,6 +138,18 @@ class ProcessIncomingMessage implements ShouldQueue
             if ($verification->extracted === null) {
                 $verification->update(['extracted' => ['raw_text' => $this->message['text']]]);
             }
+
+            $verification->update([
+                'status' => 'error',
+                'reason' => 'Mensaje de texto: se envió ayuda.',
+                'reason_code' => 'text_help',
+            ]);
+
+            $client->sendText(
+                $from,
+                (string) config('payguard.whatsapp.replies.text_help'),
+                $waMessageId
+            );
 
             return;
         }

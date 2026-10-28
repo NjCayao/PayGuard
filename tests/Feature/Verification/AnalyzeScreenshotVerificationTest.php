@@ -43,7 +43,7 @@ class AnalyzeScreenshotVerificationTest extends TestCase
 
         $this->business = Business::factory()->create(['yape_holder_name' => 'Maria Torres']);
         $this->cashier = Cashier::factory()->for($this->business)->create();
-        $this->device = Device::factory()->for($this->business)->create();
+        $this->device = Device::factory()->for($this->business)->online()->create();
     }
 
     public function test_verifies_matching_payment_end_to_end(): void
@@ -58,12 +58,13 @@ class AnalyzeScreenshotVerificationTest extends TestCase
         $verification->refresh();
 
         $this->assertSame('verified', $verification->status);
+        $this->assertSame('verified', $verification->reason_code);
         $this->assertSame($payment->id, $verification->received_payment_id);
         $this->assertSame('Maria Torres', $verification->recipient_name);
         $this->assertSame('50.00', $verification->amount);
         $this->assertIsInt($verification->ai_ms);
-        $this->assertStringStartsWith('Llegó S/ 50.00 de Juan Perez por Yape a las', $verification->reason);
-        $this->assertTextReply($verification, '✅ Llegó S/ 50.00 de Juan Perez por Yape a las');
+        $this->assertSame('Yape recibido: S/ 50.00 de Juan Perez', $verification->reason);
+        $this->assertTextReply($verification, '✅ Yape recibido: S/ 50.00 de Juan Perez');
         $this->assertNoTemplate();
         Queue::assertNotPushed(RecheckPendingVerification::class);
     }
@@ -103,6 +104,7 @@ class AnalyzeScreenshotVerificationTest extends TestCase
         $verification->refresh();
 
         $this->assertSame('reused', $verification->status);
+        $this->assertSame('reused', $verification->reason_code);
         $this->assertSame('Esta captura ya se usó antes.', $verification->reason);
         $this->assertNull($verification->received_payment_id);
         $this->assertTextReply($verification, '❌ Esta captura ya se usó antes.');
@@ -204,8 +206,9 @@ class AnalyzeScreenshotVerificationTest extends TestCase
         $verification->refresh();
 
         $this->assertSame('not_found', $verification->status);
-        $this->assertStringStartsWith('La captura es del ', $verification->reason);
-        $this->assertTextReply($verification, '❌ La captura es del ');
+        $this->assertSame('stale', $verification->reason_code);
+        $this->assertStringStartsWith('No encontré ningún Yape de S/ 50.00 cerca de las ', $verification->reason);
+        $this->assertTextReply($verification, '❌ No encontré ningún Yape de S/ 50.00 cerca de las ');
         Queue::assertNotPushed(RecheckPendingVerification::class);
     }
 
@@ -223,6 +226,13 @@ class AnalyzeScreenshotVerificationTest extends TestCase
         $this->assertSame('mismatch', $verification->status);
         $this->assertTextReply($verification, '❌ El pago no es para este negocio.');
         $this->assertTemplateSent();
+        $this->assertDatabaseHas('owner_alerts', [
+            'business_id' => $this->business->id,
+            'verification_id' => $verification->id,
+            'to' => $this->business->owner_whatsapp,
+            'status' => 'sent',
+            'wa_message_id' => 'wamid.resp',
+        ]);
     }
 
     public function test_stale_with_edit_signals_alerts_owner(): void

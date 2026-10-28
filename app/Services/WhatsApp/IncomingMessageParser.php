@@ -37,4 +37,32 @@ class IncomingMessageParser
 
         return $messages;
     }
+
+    /**
+     * @return array<int, array{wa_message_id: string, status: string, error: ?string}>
+     */
+    public function parseStatuses(array $payload): array
+    {
+        $updates = [];
+
+        foreach ($payload['entry'] ?? [] as $entry) {
+            foreach ($entry['changes'] ?? [] as $change) {
+                $value = $change['value'] ?? [];
+
+                foreach ($value['statuses'] ?? [] as $status) {
+                    if (! isset($status['id'], $status['status'])) {
+                        continue;
+                    }
+
+                    $updates[] = [
+                        'wa_message_id' => $status['id'],
+                        'status' => $status['status'],
+                        'error' => $status['errors'][0]['title'] ?? null,
+                    ];
+                }
+            }
+        }
+
+        return $updates;
+    }
 }

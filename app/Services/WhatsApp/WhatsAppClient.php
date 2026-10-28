@@ -33,14 +33,14 @@ class WhatsAppClient
         $this->request()->post("{$this->phoneUrl()}/messages", $payload)->throw();
     }
 
-    public function sendTemplate(string $to, array $textParams): void
+    public function sendTemplate(string $to, array $textParams): ?string
     {
         $parameters = array_map(
             fn (string $text) => ['type' => 'text', 'text' => $text],
             array_values($textParams)
         );
 
-        $this->request()->post("{$this->phoneUrl()}/messages", [
+        $response = $this->request()->post("{$this->phoneUrl()}/messages", [
             'messaging_product' => 'whatsapp',
             'to' => $to,
             'type' => 'template',
@@ -51,7 +51,9 @@ class WhatsAppClient
                     ['type' => 'body', 'parameters' => $parameters],
                 ],
             ],
-        ])->throw();
+        ])->throw()->json();
+
+        return $response['messages'][0]['id'] ?? null;
     }
 
     private function request(?int $timeout = null): PendingRequest

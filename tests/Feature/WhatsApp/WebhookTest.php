@@ -3,6 +3,7 @@
 namespace Tests\Feature\WhatsApp;
 
 use App\Jobs\ProcessIncomingMessage;
+use App\Jobs\UpdateOwnerAlertStatus;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -78,7 +79,7 @@ class WebhookTest extends TestCase
         });
     }
 
-    public function test_ignores_status_updates(): void
+    public function test_dispatches_job_for_status_updates(): void
     {
         Queue::fake();
 
@@ -102,7 +103,11 @@ class WebhookTest extends TestCase
         ]);
 
         $response->assertOk();
-        Queue::assertNothingPushed();
+        Queue::assertPushed(UpdateOwnerAlertStatus::class, function ($job) {
+            return $job->update['wa_message_id'] === 'wamid.test1'
+                && $job->update['status'] === 'delivered';
+        });
+        Queue::assertNotPushed(ProcessIncomingMessage::class);
     }
 
     private function signature(array $payload): string

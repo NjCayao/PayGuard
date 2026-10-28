@@ -84,4 +84,40 @@ class IncomingMessageParserTest extends TestCase
 
         $this->assertSame([], app(IncomingMessageParser::class)->parse($payload));
     }
+
+    public function test_parses_status_updates(): void
+    {
+        $payload = [
+            'entry' => [[
+                'changes' => [[
+                    'value' => [
+                        'statuses' => [
+                            [
+                                'id' => 'wamid.a1',
+                                'status' => 'delivered',
+                                'timestamp' => '1720000000',
+                                'recipient_id' => '51982226835',
+                            ],
+                            [
+                                'id' => 'wamid.a2',
+                                'status' => 'failed',
+                                'errors' => [['title' => 'Template does not exist']],
+                            ],
+                            ['status' => 'read'],
+                        ],
+                    ],
+                ]],
+            ]],
+        ];
+
+        $updates = app(IncomingMessageParser::class)->parseStatuses($payload);
+
+        $this->assertCount(2, $updates);
+        $this->assertSame('wamid.a1', $updates[0]['wa_message_id']);
+        $this->assertSame('delivered', $updates[0]['status']);
+        $this->assertNull($updates[0]['error']);
+        $this->assertSame('wamid.a2', $updates[1]['wa_message_id']);
+        $this->assertSame('failed', $updates[1]['status']);
+        $this->assertSame('Template does not exist', $updates[1]['error']);
+    }
 }

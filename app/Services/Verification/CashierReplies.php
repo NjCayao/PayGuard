@@ -19,6 +19,7 @@ class CashierReplies
         'mismatch_recipient' => 'mismatch',
         'mismatch_code' => 'mismatch',
         'mismatch_amount' => 'mismatch',
+        'offline' => 'offline',
         'expired' => 'error',
     ];
 
@@ -44,6 +45,10 @@ class CashierReplies
             $template = (string) config("payguard.verification.reasons.{$outcome->reasonCode}", '');
 
             $reason = $this->fill($template, $verification, $outcome, $payment);
+
+            if ($outcome->reasonCode === 'verified') {
+                $reason .= $this->codeSuffix($verification, $payment);
+            }
 
             if ($outcome->holderSkipped) {
                 $reason .= (string) config('payguard.verification.reasons.holder_skipped_suffix');
@@ -81,10 +86,10 @@ class CashierReplies
     {
         $timezone = $verification->business?->timezone ?? 'America/Lima';
 
-        $time = $payment?->received_at ?? $verification->paid_at ?? $verification->created_at;
+        $time = $verification->paid_at ?? $payment?->received_at ?? $verification->created_at;
 
         return str_replace(
-            [':amount', ':expected', ':payer', ':wallet', ':time', ':date'],
+            [':amount', ':expected', ':payer', ':wallet', ':time', ':date', ':code'],
             [
                 self::formatAmount($outcome->params['amount'] ?? $verification->amount),
                 self::formatAmount($outcome->params['expected'] ?? null),
@@ -92,8 +97,24 @@ class CashierReplies
                 (string) config("payguard.verification.wallet_labels.{$verification->wallet}", 'Yape'),
                 $this->time($time, $timezone),
                 $this->date($verification->paid_at ?? $verification->created_at, $timezone),
+                $payment?->security_code ?? $verification->security_code ?? '',
             ],
             $template
+        );
+    }
+
+    private function codeSuffix(Verification $verification, ?ReceivedPayment $payment): string
+    {
+        $code = $payment?->security_code ?? $verification->security_code;
+
+        if ($code === null || $code === '') {
+            return '';
+        }
+
+        return str_replace(
+            ':code',
+            $code,
+            (string) config('payguard.verification.reasons.verified_code_suffix')
         );
     }
 

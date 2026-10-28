@@ -3,8 +3,10 @@
 namespace App\Services\Verification;
 
 use App\Jobs\RecheckPendingVerification;
+use App\Models\Business;
 use App\Models\ReceivedPayment;
 use App\Models\Verification;
+use App\Services\Device\DevicePresence;
 use App\Services\WhatsApp\OwnerAlerter;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Database\QueryException;
@@ -18,6 +20,7 @@ class VerificationService
         private CashierReplies $replies,
         private WhatsAppClient $whatsapp,
         private OwnerAlerter $alerter,
+        private DevicePresence $presence,
     ) {}
 
     public function analyze(Verification $verification, bool $allowPending): void
@@ -59,7 +62,9 @@ class VerificationService
             if ($allowPending) {
                 $this->markPending($verification);
             } else {
-                $this->finalize($verification, new VerificationOutcome('not_found', 'not_found'));
+                $this->finalize($verification, $this->offline($business)
+                    ? new VerificationOutcome('not_found', 'offline')
+                    : new VerificationOutcome('not_found', 'not_found'));
             }
 
             return;
@@ -94,7 +99,7 @@ class VerificationService
 
             $rendered = $this->replies->render($verification, new VerificationOutcome('pending', 'already_reviewing'));
 
-            $verification->update(['reason' => $rendered['reason']]);
+            $verification->update(['reason' => $rendered['reason'], 'reason_code' => 'already_reviewing']);
 
             $this->whatsapp->sendText(
                 $verification->cashier->whatsapp,
@@ -109,7 +114,7 @@ class VerificationService
 
         $this->finalize($verification, new VerificationOutcome(
             status: $previous->status,
-            reasonCode: 'copied',
+            reasonCode: $previous->reason_code ?? 'copied',
             literalReason: $previous->reason ?? '',
         ));
     }
@@ -117,6 +122,7 @@ class VerificationService
     private function markPending(Verification $verification): void
     {
         $wasProcessing = $verification->status === 'processing';
+        $offline = $this->offline($verification->business);
 
         $verification->update([
             'status' => 'pending',
@@ -125,15 +131,24 @@ class VerificationService
         ]);
 
         if ($wasProcessing) {
-            $rendered = $this->replies->render($verification, new VerificationOutcome('retry', 'pending'));
+            $rendered = $this->replies->render($verification, $offline
+                ? new VerificationOutcome('pending', 'offline')
+                : new VerificationOutcome('retry', 'pending'));
 
-            $verification->update(['reason' => $rendered['reason']]);
+            $verification->update([
+                'reason' => $rendered['reason'],
+                'reason_code' => $offline ? 'offline' : 'pending',
+            ]);
 
             $this->whatsapp->sendText(
                 $verification->cashier->whatsapp,
                 $rendered['reply'],
                 $verification->wa_message_id
             );
+
+            if ($offline) {
+                $this->alerter->sendOfflineAlert($verification);
+            }
         }
 
         $this->dispatchRecheck($verification);
@@ -177,6 +192,7 @@ class VerificationService
         $verification->update([
             'status' => $outcome->status,
             'reason' => $rendered['reason'],
+            'reason_code' => $outcome->reasonCode,
             'received_payment_id' => $outcome->receivedPaymentId,
         ]);
 
@@ -186,13 +202,10 @@ class VerificationService
             $verification->wa_message_id
         );
 
-        if ($this->shouldAlert($verification, $outcome->status)) {
-            $this->alerter->sendSuspiciousAlert(
-                $verification->business,
-                $verification->cashier->name,
-                CashierReplies::formatAmount($verification->amount),
-                $rendered['reason'],
-            );
+        if ($outcome->reasonCode === 'offline') {
+            $this->alerter->sendOfflineAlert($verification);
+        } elseif ($this->shouldAlert($verification, $outcome->status)) {
+            $this->alerter->sendSuspiciousAlert($verification, $rendered['reason']);
         }
     }
 
@@ -207,6 +220,11 @@ class VerificationService
         }
 
         return false;
+    }
+
+    private function offline(Business $business): bool
+    {
+        return ! $this->presence->online($business);
     }
 
     private function isClaimed(ReceivedPayment $payment): bool

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\WhatsApp;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessIncomingMessage;
+use App\Jobs\UpdateOwnerAlertStatus;
 use App\Services\WhatsApp\IncomingMessageParser;
 use App\Services\WhatsApp\SignatureVerifier;
 use Illuminate\Http\Request;
@@ -30,8 +31,14 @@ class WebhookController extends Controller
             return response('Invalid signature', 403);
         }
 
-        foreach ($parser->parse($request->json()->all() ?? []) as $message) {
+        $payload = $request->json()->all() ?? [];
+
+        foreach ($parser->parse($payload) as $message) {
             ProcessIncomingMessage::dispatch($message);
+        }
+
+        foreach ($parser->parseStatuses($payload) as $update) {
+            UpdateOwnerAlertStatus::dispatch($update);
         }
 
         return response('OK', 200);

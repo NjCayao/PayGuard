@@ -34,7 +34,7 @@ class RecheckPendingVerificationTest extends TestCase
 
         $this->business = Business::factory()->create(['yape_holder_name' => 'Maria Torres']);
         $this->cashier = Cashier::factory()->for($this->business)->create();
-        $this->device = Device::factory()->for($this->business)->create();
+        $this->device = Device::factory()->for($this->business)->online()->create();
     }
 
     public function test_verifies_when_payment_arrives_in_window(): void
@@ -57,11 +57,11 @@ class RecheckPendingVerificationTest extends TestCase
         $this->assertSame('verified', $verification->status);
         $this->assertNotNull($verification->received_payment_id);
 
-        Http::assertSent(function ($request) use ($verification) {
+        Http::assertSent(function ($request) {
             $data = $request->data();
 
             return ($data['type'] ?? '') === 'text'
-                && str_starts_with($data['text']['body'], '✅ Llegó S/ 50.00 de Juan Perez por Yape a las');
+                && str_starts_with($data['text']['body'], '✅ Yape recibido: S/ 50.00 de Juan Perez');
         });
     }
 

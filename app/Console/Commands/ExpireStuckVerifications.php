@@ -36,7 +36,7 @@ class ExpireStuckVerifications extends Command
         $notified = 0;
 
         foreach ($stuck as $verification) {
-            $verification->update(['status' => 'error', 'reason' => $rendered['reason']]);
+            $verification->update(['status' => 'error', 'reason' => $rendered['reason'], 'reason_code' => 'expired']);
             $closed++;
 
             if ($verification->created_at->lt($notifySince) || $verification->cashier === null) {

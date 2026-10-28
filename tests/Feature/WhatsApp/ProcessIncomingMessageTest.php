@@ -290,8 +290,12 @@ class ProcessIncomingMessageTest extends TestCase
         });
     }
 
-    public function test_stores_text_query(): void
+    public function test_text_query_receives_help_reply_and_closes(): void
     {
+        Http::fake([
+            'graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.resp']]]),
+        ]);
+
         $cashier = Cashier::factory()->create();
 
         ProcessIncomingMessage::dispatch([
@@ -306,7 +310,17 @@ class ProcessIncomingMessageTest extends TestCase
 
         $this->assertSame('text', $verification->input_type);
         $this->assertSame(['raw_text' => 'Llego un Yape de 50?'], $verification->extracted);
+        $this->assertSame('error', $verification->status);
+        $this->assertSame('text_help', $verification->reason_code);
         Queue::assertNotPushed(AnalyzeScreenshotVerification::class);
+
+        Http::assertSent(function ($request) use ($cashier) {
+            $data = $request->data();
+
+            return $data['to'] === $cashier->whatsapp
+                && $data['text']['body'] === config('payguard.whatsapp.replies.text_help')
+                && $data['context']['message_id'] === 'wamid.txt';
+        });
     }
 
     public function test_failed_marks_verification_as_error_and_replies(): void
