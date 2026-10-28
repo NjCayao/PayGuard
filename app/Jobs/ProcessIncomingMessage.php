@@ -139,17 +139,7 @@ class ProcessIncomingMessage implements ShouldQueue
                 $verification->update(['extracted' => ['raw_text' => $this->message['text']]]);
             }
 
-            $verification->update([
-                'status' => 'error',
-                'reason' => 'Mensaje de texto: se envió ayuda.',
-                'reason_code' => 'text_help',
-            ]);
-
-            $client->sendText(
-                $from,
-                (string) config('payguard.whatsapp.replies.text_help'),
-                $waMessageId
-            );
+            AnalyzeQueryVerification::dispatch($verification->id);
 
             return;
         }
@@ -162,6 +152,8 @@ class ProcessIncomingMessage implements ShouldQueue
 
         if ($verification->input_type === 'image') {
             AnalyzeScreenshotVerification::dispatch($verification->id);
+        } elseif ($verification->input_type === 'audio') {
+            AnalyzeQueryVerification::dispatch($verification->id);
         }
     }
 

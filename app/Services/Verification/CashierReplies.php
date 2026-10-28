@@ -21,6 +21,8 @@ class CashierReplies
         'mismatch_amount' => 'mismatch',
         'offline' => 'offline',
         'expired' => 'error',
+        'multiple_matches' => 'multiple',
+        'already_confirmed' => 'already_confirmed',
     ];
 
     private const FINAL_CODES = [
@@ -70,9 +72,10 @@ class CashierReplies
         ];
     }
 
-    public function renderExpired(): array
+    public function renderExpired(string $inputType = 'image'): array
     {
-        $reason = mb_substr((string) config('payguard.verification.reasons.expired'), 0, 255);
+        $key = $inputType === 'image' ? 'expired' : 'expired_query';
+        $reason = mb_substr((string) config("payguard.verification.reasons.{$key}"), 0, 255);
 
         return ['reason' => $reason, 'reply' => $reason];
     }
@@ -89,18 +92,60 @@ class CashierReplies
         $time = $verification->paid_at ?? $payment?->received_at ?? $verification->created_at;
 
         return str_replace(
-            [':amount', ':expected', ':payer', ':wallet', ':time', ':date', ':code'],
+            [':amount', ':expected', ':payer', ':wallet', ':wallets', ':count', ':items', ':confirmed', ':time', ':date', ':code'],
             [
                 self::formatAmount($outcome->params['amount'] ?? $verification->amount),
                 self::formatAmount($outcome->params['expected'] ?? null),
                 $payment?->payer_name ?? 'un cliente',
                 (string) config("payguard.verification.wallet_labels.{$verification->wallet}", 'Yape'),
+                (string) config("payguard.verification.wallet_plurals.{$verification->wallet}", 'Yapes'),
+                (string) ($outcome->params['count'] ?? ''),
+                $this->matchItems($outcome->params['matches'] ?? [], $timezone),
+                $this->confirmedTime($outcome->params['confirmed_at'] ?? null, $timezone),
                 $this->time($time, $timezone),
                 $this->date($verification->paid_at ?? $verification->created_at, $timezone),
                 $payment?->security_code ?? $verification->security_code ?? '',
             ],
             $template
         );
+    }
+
+    private function matchItems(mixed $matches, string $timezone): string
+    {
+        if (! is_array($matches)) {
+            return '';
+        }
+
+        $items = [];
+
+        foreach ($matches as $match) {
+            if (! is_array($match) || ! isset($match['received_at'])) {
+                continue;
+            }
+
+            $payer = is_string($match['payer'] ?? null) && trim($match['payer']) !== ''
+                ? trim($match['payer'])
+                : 'un cliente';
+
+            $items[] = "{$payer} ({$this->time(Carbon::parse($match['received_at']), $timezone)})";
+        }
+
+        if (count($items) < 2) {
+            return implode('', $items);
+        }
+
+        $last = array_pop($items);
+
+        return implode(', ', $items)." y {$last}";
+    }
+
+    private function confirmedTime(mixed $value, string $timezone): string
+    {
+        if (! is_string($value) || $value === '') {
+            return '';
+        }
+
+        return $this->time(Carbon::parse($value), $timezone);
     }
 
     private function codeSuffix(Verification $verification, ?ReceivedPayment $payment): string

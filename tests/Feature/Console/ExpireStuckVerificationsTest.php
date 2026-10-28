@@ -66,23 +66,37 @@ class ExpireStuckVerificationsTest extends TestCase
         });
     }
 
-    public function test_keeps_recent_pending_and_non_image_rows(): void
+    public function test_closes_old_processing_queries_with_their_own_text(): void
+    {
+        $audio = Verification::factory()->create([
+            'input_type' => 'audio',
+            'status' => 'processing',
+        ]);
+        Verification::whereKey($audio->id)->update([
+            'created_at' => now()->subDays(2),
+            'updated_at' => now()->subDays(2),
+        ]);
+
+        $this->artisan('verifications:expire-stuck')->assertSuccessful();
+
+        $audio->refresh();
+
+        $this->assertSame('error', $audio->status);
+        $this->assertSame('expired', $audio->reason_code);
+        $this->assertSame('La revisión tardó demasiado. Vuelve a preguntar.', $audio->reason);
+    }
+
+    public function test_keeps_recent_processing_and_pending_rows(): void
     {
         $recent = Verification::factory()->create(['input_type' => 'image', 'status' => 'processing']);
         $pending = Verification::factory()->create(['input_type' => 'image', 'status' => 'pending']);
-        $audio = Verification::factory()->create(['input_type' => 'audio', 'status' => 'processing']);
 
         Verification::whereKey($pending->id)->update(['updated_at' => now()->subHour()]);
-        Verification::whereKey($audio->id)->update([
-            'created_at' => now()->subHour(),
-            'updated_at' => now()->subHour(),
-        ]);
 
         $this->artisan('verifications:expire-stuck')->assertSuccessful();
 
         $this->assertSame('processing', $recent->fresh()->status);
         $this->assertSame('pending', $pending->fresh()->status);
-        $this->assertSame('processing', $audio->fresh()->status);
     }
 
     public function test_dry_run_changes_nothing(): void

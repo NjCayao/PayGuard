@@ -16,6 +16,7 @@ class VerificationService
 {
     public function __construct(
         private PaymentMatcher $matcher,
+        private TextQueryMatcher $queryMatcher,
         private DuplicateChecker $duplicates,
         private CashierReplies $replies,
         private WhatsAppClient $whatsapp,
@@ -31,14 +32,16 @@ class VerificationService
             return;
         }
 
-        if ($verification->input_type !== 'image') {
-            return;
-        }
-
         $business = $verification->business;
         $cashier = $verification->cashier;
 
         if ($business === null || $cashier === null) {
+            return;
+        }
+
+        if ($verification->input_type !== 'image') {
+            $this->analyzeQuery($verification, $allowPending);
+
             return;
         }
 
@@ -63,6 +66,35 @@ class VerificationService
                 $this->markPending($verification);
             } else {
                 $this->finalize($verification, $this->offline($business)
+                    ? new VerificationOutcome('not_found', 'offline')
+                    : new VerificationOutcome('not_found', 'not_found'));
+            }
+
+            return;
+        }
+
+        if ($outcome->status === 'verified') {
+            $this->claim($verification, $outcome);
+
+            return;
+        }
+
+        $this->finalize($verification, $outcome);
+    }
+
+    private function analyzeQuery(Verification $verification, bool $allowPending): void
+    {
+        if ($verification->amount === null) {
+            return;
+        }
+
+        $outcome = $this->queryMatcher->match($verification);
+
+        if ($outcome->status === 'retry') {
+            if ($allowPending) {
+                $this->markPending($verification);
+            } else {
+                $this->finalize($verification, $this->offline($verification->business)
                     ? new VerificationOutcome('not_found', 'offline')
                     : new VerificationOutcome('not_found', 'not_found'));
             }
@@ -211,6 +243,10 @@ class VerificationService
 
     private function shouldAlert(Verification $verification, string $status): bool
     {
+        if ($verification->input_type !== 'image') {
+            return false;
+        }
+
         if (in_array($status, ['mismatch', 'reused'], true)) {
             return true;
         }

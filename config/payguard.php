@@ -31,6 +31,50 @@ return [
         'transcribe_model' => env('META_MODEL_TRANSCRIBE', 'muse-voice-transcribe-1.0'),
         'vision_timeout' => (int) env('META_MODEL_VISION_TIMEOUT', 60),
         'vision_max_tokens' => (int) env('META_MODEL_VISION_MAX_TOKENS', 1000),
+        'transcribe_timeout' => (int) env('META_MODEL_TRANSCRIBE_TIMEOUT', 30),
+        'query_max_tokens' => (int) env('META_MODEL_QUERY_MAX_TOKENS', 300),
+        'asr_mode' => env('META_MODEL_ASR_MODE', 'PUSH_TO_TALK'),
+        'asr_language_bias' => ['Spanish'],
+        'asr_keywords' => ['Yape', 'Plin', 'soles', 'luca', 'lucas'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Text and audio payment queries
+    |--------------------------------------------------------------------------
+    |
+    | window_minutes: how far back to look for received payments when the
+    | cashier asks without a screenshot. max_listed_matches: how many
+    | candidates are named in the "several payments" reply. The prefilter
+    | avoids the model call for plain greetings: if no pattern matches,
+    | the cashier gets the help text without any AI call.
+    |
+    */
+
+    'query' => [
+        'window_minutes' => (int) env('PAYGUARD_QUERY_WINDOW_MINUTES', 10),
+        'max_listed_matches' => 3,
+        'prefilter_patterns' => [
+            '/\d/u',
+            '/\b(yape|plin|soles?|lucas?|lleg[óo]|pagos?|pagaron|yapearon|montos?)\b/iu',
+            '/(recib|conf[ií]rm)/iu',
+            '/\b(uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[ée]is|diecisiete|dieciocho|diecinueve|veinte|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|medio|pico)\b/iu',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Local tooling
+    |--------------------------------------------------------------------------
+    |
+    | ffmpeg converts WhatsApp voice notes (ogg/opus) to the mono WAV the
+    | transcription endpoint requires. It must be installed on the server.
+    |
+    */
+
+    'support' => [
+        'ffmpeg_path' => env('PAYGUARD_FFMPEG_PATH', 'ffmpeg'),
+        'ffmpeg_timeout' => (int) env('PAYGUARD_FFMPEG_TIMEOUT', 30),
     ],
 
     /*
@@ -128,6 +172,10 @@ return [
             'yape' => 'Yape',
             'plin' => 'Plin',
         ],
+        'wallet_plurals' => [
+            'yape' => 'Yapes',
+            'plin' => 'Plines',
+        ],
         'status_emoji' => [
             'verified' => '✅',
             'pending' => '⏳',
@@ -151,6 +199,9 @@ return [
             'mismatch_code' => 'El código de seguridad no coincide.',
             'mismatch_amount' => 'Llegó un pago parecido de :amount, no de :expected.',
             'expired' => 'La revisión tardó demasiado. Vuelve a enviar la captura.',
+            'expired_query' => 'La revisión tardó demasiado. Vuelve a preguntar.',
+            'multiple_matches' => 'Hay :count :wallets de :amount recientes: :items. Mándame la captura para saber cuál es.',
+            'already_confirmed' => 'Ese :wallet ya fue confirmado a las :confirmed. Mándame la captura para revisarlo.',
             'edit_suffix' => ' Además, la imagen muestra señales de edición.',
             'holder_skipped_suffix' => ' (destinatario no verificado)',
         ],
@@ -218,6 +269,13 @@ return [
                 '/descuento/iu',
                 '/sorteo/iu',
                 '/\bcompra\b/iu',
+                '/\bganaste\b/iu',
+                '/\bgana\b/iu',
+                '/premio/iu',
+                '/cashback/iu',
+                '/oferta/iu',
+                '/beneficio/iu',
+                '/participa/iu',
             ],
             'received_markers' => [
                 '/te envi[óo] un pago/iu',

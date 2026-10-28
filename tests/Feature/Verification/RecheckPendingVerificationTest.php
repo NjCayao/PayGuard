@@ -105,6 +105,83 @@ class RecheckPendingVerificationTest extends TestCase
         });
     }
 
+    public function test_verifies_pending_text_query_when_payment_arrives(): void
+    {
+        $this->fakeWhatsApp();
+
+        $verification = Verification::factory()
+            ->for($this->business)->for($this->cashier)
+            ->create([
+                'input_type' => 'text',
+                'status' => 'pending',
+                'wallet' => 'yape',
+                'amount' => '50.00',
+                'recheck_until' => now()->addMinutes(2),
+                'extracted' => [
+                    'raw_text' => 'yape de 50',
+                    'query' => [
+                        'is_payment_query' => true,
+                        'wallet' => 'yape',
+                        'amount' => '50.00',
+                        'payer_name' => null,
+                    ],
+                ],
+            ]);
+
+        ReceivedPayment::factory()->for($this->business)->for($this->device)->create([
+            'amount' => '50.00',
+            'wallet' => 'yape',
+            'payer_name' => 'Juan Perez',
+            'received_at' => now()->subMinute(),
+        ]);
+
+        $this->runJob($verification);
+
+        $verification->refresh();
+
+        $this->assertSame('verified', $verification->status);
+        $this->assertNotNull($verification->received_payment_id);
+
+        Http::assertSent(function ($request) {
+            $data = $request->data();
+
+            return ($data['type'] ?? '') === 'text'
+                && str_starts_with($data['text']['body'], '✅ Yape recibido: S/ 50.00 de Juan Perez');
+        });
+    }
+
+    public function test_pending_text_query_expires_as_not_found(): void
+    {
+        $this->fakeWhatsApp();
+
+        $verification = Verification::factory()
+            ->for($this->business)->for($this->cashier)
+            ->create([
+                'input_type' => 'text',
+                'status' => 'pending',
+                'wallet' => 'yape',
+                'amount' => '50.00',
+                'recheck_until' => now()->subSecond(),
+                'extracted' => [
+                    'raw_text' => 'yape de 50',
+                    'query' => [
+                        'is_payment_query' => true,
+                        'wallet' => 'yape',
+                        'amount' => '50.00',
+                        'payer_name' => null,
+                    ],
+                ],
+            ]);
+
+        $this->runJob($verification);
+
+        $verification->refresh();
+
+        $this->assertSame('not_found', $verification->status);
+        $this->assertSame('No llegó ningún pago de S/ 50.00.', $verification->reason);
+        Queue::assertNotPushed(RecheckPendingVerification::class);
+    }
+
     public function test_skips_non_pending_verifications(): void
     {
         Http::fake();

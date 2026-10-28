@@ -14,12 +14,11 @@ class ExpireStuckVerifications extends Command
     protected $signature = 'verifications:expire-stuck
         {--dry-run : Show how many verifications would expire without changing them}';
 
-    protected $description = 'Close image verifications stuck in processing for too long';
+    protected $description = 'Close verifications stuck in processing for too long';
 
     public function handle(CashierReplies $replies, WhatsAppClient $whatsapp): int
     {
-        $stuck = Verification::where('input_type', 'image')
-            ->where('status', 'processing')
+        $stuck = Verification::where('status', 'processing')
             ->where('updated_at', '<', now()->subMinutes((int) config('payguard.verification.processing_timeout_minutes')))
             ->with('cashier')
             ->get();
@@ -30,12 +29,12 @@ class ExpireStuckVerifications extends Command
             return self::SUCCESS;
         }
 
-        $rendered = $replies->renderExpired();
         $notifySince = now()->subHours((int) config('payguard.verification.notify_hours'));
         $closed = 0;
         $notified = 0;
 
         foreach ($stuck as $verification) {
+            $rendered = $replies->renderExpired($verification->input_type);
             $verification->update(['status' => 'error', 'reason' => $rendered['reason'], 'reason_code' => 'expired']);
             $closed++;
 

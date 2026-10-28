@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\WhatsApp;
 
+use App\Jobs\AnalyzeQueryVerification;
 use App\Jobs\AnalyzeScreenshotVerification;
 use App\Jobs\ProcessIncomingMessage;
 use App\Models\Cashier;
@@ -28,7 +29,7 @@ class ProcessIncomingMessageTest extends TestCase
         config()->set('payguard.whatsapp.token', 'test-token');
         config()->set('payguard.whatsapp.phone_number_id', '12345');
         Storage::fake('local');
-        Queue::fake([AnalyzeScreenshotVerification::class]);
+        Queue::fake([AnalyzeScreenshotVerification::class, AnalyzeQueryVerification::class]);
     }
 
     public function test_replies_to_unknown_number_only_once(): void
@@ -125,6 +126,9 @@ class ProcessIncomingMessageTest extends TestCase
         $this->assertSame(hash('sha256', 'fake-audio-bytes'), $verification->media_sha256);
         Storage::disk('local')->assertExists($verification->media_path);
         Queue::assertNotPushed(AnalyzeScreenshotVerification::class);
+        Queue::assertPushed(AnalyzeQueryVerification::class, function ($job) use ($verification) {
+            return $job->verificationId === $verification->id;
+        });
     }
 
     public function test_first_attempt_fails_and_retry_succeeds(): void
@@ -290,11 +294,9 @@ class ProcessIncomingMessageTest extends TestCase
         });
     }
 
-    public function test_text_query_receives_help_reply_and_closes(): void
+    public function test_text_message_dispatches_query_analysis(): void
     {
-        Http::fake([
-            'graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.resp']]]),
-        ]);
+        Http::fake();
 
         $cashier = Cashier::factory()->create();
 
@@ -310,17 +312,12 @@ class ProcessIncomingMessageTest extends TestCase
 
         $this->assertSame('text', $verification->input_type);
         $this->assertSame(['raw_text' => 'Llego un Yape de 50?'], $verification->extracted);
-        $this->assertSame('error', $verification->status);
-        $this->assertSame('text_help', $verification->reason_code);
+        $this->assertSame('processing', $verification->status);
         Queue::assertNotPushed(AnalyzeScreenshotVerification::class);
-
-        Http::assertSent(function ($request) use ($cashier) {
-            $data = $request->data();
-
-            return $data['to'] === $cashier->whatsapp
-                && $data['text']['body'] === config('payguard.whatsapp.replies.text_help')
-                && $data['context']['message_id'] === 'wamid.txt';
+        Queue::assertPushed(AnalyzeQueryVerification::class, function ($job) use ($verification) {
+            return $job->verificationId === $verification->id;
         });
+        Http::assertNothingSent();
     }
 
     public function test_failed_marks_verification_as_error_and_replies(): void

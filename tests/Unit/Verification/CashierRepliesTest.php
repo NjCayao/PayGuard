@@ -126,6 +126,48 @@ class CashierRepliesTest extends TestCase
         $this->assertSame('❌ Llegó un pago parecido de S/ 10.00, no de S/ 50.00.', $rendered['reply']);
     }
 
+    public function test_multiple_matches_reply_lists_candidates_without_emoji(): void
+    {
+        $rendered = app(CashierReplies::class)->render(
+            $this->verification(),
+            new VerificationOutcome('mismatch', 'multiple_matches', [
+                'count' => '2',
+                'matches' => [
+                    ['payer' => 'Antoni Mon*', 'received_at' => '2026-10-28T15:44:00.000000Z'],
+                    ['payer' => 'Sonia Vit*', 'received_at' => '2026-10-28T15:45:00.000000Z'],
+                ],
+            ]),
+        );
+
+        $this->assertSame(
+            'Hay 2 Yapes de S/ 50.00 recientes: Antoni Mon* (10:44 a. m) y Sonia Vit* (10:45 a. m). Mándame la captura para saber cuál es.',
+            $rendered['reply']
+        );
+        $this->assertSame($rendered['reason'], $rendered['reply']);
+    }
+
+    public function test_already_confirmed_reply_shows_time_without_emoji(): void
+    {
+        $rendered = app(CashierReplies::class)->render(
+            $this->verification(),
+            new VerificationOutcome('reused', 'already_confirmed', [
+                'confirmed_at' => '2026-10-28T15:44:00.000000Z',
+            ]),
+        );
+
+        $this->assertSame(
+            'Ese Yape ya fue confirmado a las 10:44 a. m. Mándame la captura para revisarlo.',
+            $rendered['reply']
+        );
+    }
+
+    public function test_expired_query_reply(): void
+    {
+        $rendered = app(CashierReplies::class)->renderExpired('audio');
+
+        $this->assertSame('La revisión tardó demasiado. Vuelve a preguntar.', $rendered['reply']);
+    }
+
     public function test_holder_skipped_suffix(): void
     {
         $rendered = app(CashierReplies::class)->render(
