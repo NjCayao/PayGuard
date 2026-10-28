@@ -47,7 +47,7 @@ flowchart LR
    - El **motor de verificación** compara con los pagos recibidos y decide el resultado.
    - Muse Spark redacta una respuesta corta en español a partir del resultado y el motivo.
    - Se envía la respuesta al cajero y, si es sospechoso, la alerta al dueño.
-4. Si queda `pending`, un trabajo programado vuelve a buscar cada 20 segundos hasta `recheck_until` y avisa el resultado final.
+4. Si queda `pending`, el propio trabajo se vuelve a despachar con espera de 20 segundos hasta `recheck_until` y avisa el resultado final. Aparte, el scheduler cierra cada hora las verificaciones atascadas en `processing`.
 
 ## Rutas principales
 
@@ -74,13 +74,15 @@ flowchart LR
 payguard/
 ├── app/
 │   ├── Http/Controllers/        # Controladores delgados
-│   ├── Jobs/                    # ProcessIncomingMessage, RecheckPendingVerification
+│   ├── Jobs/                    # ProcessIncomingMessage, AnalyzeScreenshotVerification, RecheckPendingVerification
+│   ├── Console/Commands/        # ExpireStuckVerifications, SimulatePayment
 │   ├── Services/
-│   │   ├── Meta/                # MetaModelClient, ScreenshotReader, VoiceTranscriber
-│   │   ├── WhatsApp/            # WhatsAppClient, SignatureVerifier
+│   │   ├── Meta/                # MetaModelClient, ScreenshotReader, ScreenshotData
+│   │   ├── WhatsApp/            # WhatsAppClient, SignatureVerifier, MediaStore, OwnerAlerter
 │   │   ├── Device/              # DeviceAuthService
 │   │   ├── Payments/            # NotificationParser, YapeNotificationParser, ReceivedPaymentService
-│   │   └── Verification/        # PaymentMatcher, VerificationResult
+│   │   ├── Verification/        # VerificationService, PaymentMatcher, DuplicateChecker, CashierReplies
+│   │   └── Support/             # Amounts
 │   └── Models/
 ├── config/payguard.php          # Valores configurables (ventanas, modelos)
 ├── database/migrations/
