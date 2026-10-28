@@ -7,6 +7,7 @@ use App\Models\Cashier;
 use App\Models\Verification;
 use App\Services\Verification\DuplicateChecker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DuplicateCheckerTest extends TestCase
@@ -110,6 +111,44 @@ class DuplicateCheckerTest extends TestCase
         $current = $this->verification(['operation_code' => 'OP-9']);
 
         $this->assertSame($first->id, app(DuplicateChecker::class)->findPrevious($current)?->id);
+    }
+
+    public function test_whatsapp_verification_ignores_trial_duplicates(): void
+    {
+        $this->verification([
+            'operation_code' => 'OP-9',
+            'status' => 'verified',
+            'source' => 'trial',
+            'trial_key' => (string) Str::uuid(),
+        ]);
+        $current = $this->verification(['operation_code' => 'OP-9']);
+
+        $this->assertNull(app(DuplicateChecker::class)->findPrevious($current));
+    }
+
+    public function test_trial_verification_only_matches_its_own_key(): void
+    {
+        $key = (string) Str::uuid();
+
+        $this->verification(['operation_code' => 'OP-9', 'status' => 'verified']);
+        $this->verification([
+            'operation_code' => 'OP-9',
+            'status' => 'verified',
+            'source' => 'trial',
+            'trial_key' => (string) Str::uuid(),
+        ]);
+        $current = $this->verification(['operation_code' => 'OP-9', 'source' => 'trial', 'trial_key' => $key]);
+
+        $this->assertNull(app(DuplicateChecker::class)->findPrevious($current));
+
+        $previous = $this->verification([
+            'operation_code' => 'OP-9',
+            'status' => 'verified',
+            'source' => 'trial',
+            'trial_key' => $key,
+        ]);
+
+        $this->assertSame($previous->id, app(DuplicateChecker::class)->findPrevious($current)?->id);
     }
 
     private function verification(array $overrides = []): Verification

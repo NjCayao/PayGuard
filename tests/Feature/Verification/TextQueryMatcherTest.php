@@ -9,6 +9,7 @@ use App\Models\ReceivedPayment;
 use App\Models\Verification;
 use App\Services\Verification\TextQueryMatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class TextQueryMatcherTest extends TestCase
@@ -164,6 +165,32 @@ class TextQueryMatcherTest extends TestCase
         $this->payment(['amount' => '10.00']);
 
         $this->assertSame('retry', app(TextQueryMatcher::class)->match($verification)->status);
+    }
+
+    public function test_whatsapp_query_ignores_trial_payments(): void
+    {
+        $verification = $this->queryVerification();
+        $this->payment(['trial_key' => (string) Str::uuid()]);
+
+        $this->assertSame('retry', app(TextQueryMatcher::class)->match($verification)->status);
+    }
+
+    public function test_trial_query_only_sees_its_own_key(): void
+    {
+        $key = (string) Str::uuid();
+
+        $verification = $this->queryVerification(['source' => 'trial', 'trial_key' => $key]);
+        $this->payment();
+        $this->payment(['trial_key' => (string) Str::uuid()]);
+
+        $this->assertSame('retry', app(TextQueryMatcher::class)->match($verification)->status);
+
+        $own = $this->payment(['trial_key' => $key]);
+
+        $outcome = app(TextQueryMatcher::class)->match($verification);
+
+        $this->assertSame('verified', $outcome->status);
+        $this->assertSame($own->id, $outcome->receivedPaymentId);
     }
 
     private function queryVerification(array $overrides = []): Verification

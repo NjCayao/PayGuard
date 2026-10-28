@@ -65,6 +65,24 @@ class OwnerAlerterTest extends TestCase
         $this->assertNotNull($alert->error);
     }
 
+    public function test_demo_alert_is_registered_as_simulated_without_sending(): void
+    {
+        Http::fake();
+        Http::preventStrayRequests();
+
+        $business = Business::factory()->create(['is_demo' => true, 'name' => 'Bodega El Sol']);
+        $cashier = Cashier::factory()->for($business)->create(['name' => 'Luis']);
+        $verification = Verification::factory()->for($business)->for($cashier)->create(['amount' => '50.00']);
+
+        $alert = app(OwnerAlerter::class)->sendSuspiciousAlert($verification, 'Monto distinto');
+
+        $this->assertSame('simulated', $alert->status);
+        $this->assertNull($alert->error);
+        $this->assertNull($alert->wa_message_id);
+
+        Http::assertNothingSent();
+    }
+
     public function test_offline_alert_is_sent_only_once_per_cooldown(): void
     {
         Http::fake([

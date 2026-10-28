@@ -214,6 +214,27 @@ class CashierRepliesTest extends TestCase
         $this->assertSame('S/ 1,234.50', CashierReplies::formatAmount('1234.5'));
     }
 
+    public function test_reply_for_rebuilds_stored_reply(): void
+    {
+        $replies = app(CashierReplies::class);
+
+        $verified = $this->verification([
+            'status' => 'verified',
+            'reason_code' => 'verified',
+            'reason' => 'Yape recibido: S/ 50.00 de Juan Perez · Cód. 123.',
+        ]);
+
+        $this->assertSame('✅ Yape recibido: S/ 50.00 de Juan Perez · Cód. 123.', $replies->replyFor($verified));
+
+        $reused = $this->verification([
+            'status' => 'reused',
+            'reason_code' => 'reused',
+            'reason' => 'Esta captura ya se usó antes.',
+        ]);
+
+        $this->assertSame('❌ Esta captura ya se usó antes.', $replies->replyFor($reused));
+    }
+
     private function verification(array $overrides = []): Verification
     {
         $verification = new Verification(array_merge([

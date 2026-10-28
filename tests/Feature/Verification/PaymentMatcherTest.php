@@ -9,6 +9,7 @@ use App\Models\ReceivedPayment;
 use App\Models\Verification;
 use App\Services\Verification\PaymentMatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PaymentMatcherTest extends TestCase
@@ -245,6 +246,32 @@ class PaymentMatcherTest extends TestCase
 
         $this->assertSame('verified', $outcome->status);
         $this->assertSame($payment->id, $outcome->receivedPaymentId);
+    }
+
+    public function test_whatsapp_verification_ignores_trial_payments(): void
+    {
+        $verification = $this->verification();
+        $this->payment(['trial_key' => (string) Str::uuid()]);
+
+        $this->assertSame('retry', app(PaymentMatcher::class)->match($verification)->status);
+    }
+
+    public function test_trial_verification_only_sees_its_own_key(): void
+    {
+        $key = (string) Str::uuid();
+
+        $verification = $this->verification(['source' => 'trial', 'trial_key' => $key]);
+        $this->payment();
+        $this->payment(['trial_key' => (string) Str::uuid()]);
+
+        $this->assertSame('retry', app(PaymentMatcher::class)->match($verification)->status);
+
+        $own = $this->payment(['trial_key' => $key]);
+
+        $outcome = app(PaymentMatcher::class)->match($verification);
+
+        $this->assertSame('verified', $outcome->status);
+        $this->assertSame($own->id, $outcome->receivedPaymentId);
     }
 
     private function verification(array $overrides = []): Verification
