@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, errorMessage, fieldErrors } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import DemoNotice from '../components/DemoNotice';
+import Pagination from '../components/Pagination';
 import { DEMO_BLOCKED_MESSAGE, isDemo } from '../utils/demo';
 import {
     alertErrorClass,
@@ -22,8 +23,7 @@ export default function Cashiers() {
     const demo = isDemo(user);
     const blockedTitle = demo ? DEMO_BLOCKED_MESSAGE : undefined;
     const [cashiers, setCashiers] = useState([]);
-    const [page, setPage] = useState(1);
-    const [lastPage, setLastPage] = useState(1);
+    const [meta, setMeta] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -38,8 +38,7 @@ export default function Cashiers() {
         try {
             const response = await api.get('/cashiers', { params: { page: requestedPage } });
             setCashiers(response.data.data);
-            setPage(response.data.meta.current_page);
-            setLastPage(response.data.meta.last_page);
+            setMeta(response.data.meta);
         } catch {
             setNotice('');
             setFormError('No se pudo cargar la lista de cajeros.');
@@ -87,7 +86,7 @@ export default function Cashiers() {
                 setNotice('Cajero agregado.');
             }
             setShowForm(false);
-            await load(editing ? page : 1);
+            await load(editing ? (meta?.current_page ?? 1) : 1);
         } catch (error) {
             const validation = fieldErrors(error);
             setErrors(validation);
@@ -104,7 +103,7 @@ export default function Cashiers() {
         const action = cashier.is_active ? 'deactivate' : 'activate';
         try {
             await api.patch(`/cashiers/${cashier.id}/${action}`);
-            await load(page);
+            await load(meta?.current_page ?? 1);
         } catch (error) {
             setNotice(errorMessage(error, 'No se pudo cambiar el estado.'));
         }
@@ -119,7 +118,7 @@ export default function Cashiers() {
         try {
             await api.delete(`/cashiers/${cashier.id}`);
             setNotice('Cajero eliminado.');
-            await load(page);
+            await load(meta?.current_page ?? 1);
         } catch (error) {
             setNotice(errorMessage(error, 'No se pudo eliminar el cajero.'));
         }
@@ -260,29 +259,7 @@ export default function Cashiers() {
                 )}
             </div>
 
-            {lastPage > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                    <button
-                        type="button"
-                        disabled={page <= 1}
-                        onClick={() => load(page - 1)}
-                        className={secondaryButtonClass}
-                    >
-                        Anterior
-                    </button>
-                    <p className="text-sm text-slate-600">
-                        Página {page} de {lastPage}
-                    </p>
-                    <button
-                        type="button"
-                        disabled={page >= lastPage}
-                        onClick={() => load(page + 1)}
-                        className={secondaryButtonClass}
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            )}
+            <Pagination meta={meta} onChange={(next) => load(next)} />
         </div>
     );
 }

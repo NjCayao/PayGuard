@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import DemoNotice from '../components/DemoNotice';
+import Pagination from '../components/Pagination';
 import { DEMO_BLOCKED_MESSAGE, isDemo } from '../utils/demo';
 import {
     alertErrorClass,
@@ -15,17 +16,19 @@ export default function Devices() {
     const { user } = useAuth();
     const demo = isDemo(user);
     const [devices, setDevices] = useState([]);
+    const [meta, setMeta] = useState(null);
     const [loading, setLoading] = useState(true);
     const [notice, setNotice] = useState('');
     const [error, setError] = useState('');
     const [workingId, setWorkingId] = useState(null);
 
-    async function load() {
+    async function load(requestedPage = 1) {
         setLoading(true);
         setError('');
         try {
-            const response = await api.get('/devices');
+            const response = await api.get('/devices', { params: { page: requestedPage } });
             setDevices(response.data.data);
+            setMeta(response.data.meta);
         } catch (loadError) {
             setError(errorMessage(loadError, 'No se pudo cargar los dispositivos.'));
         } finally {
@@ -34,7 +37,7 @@ export default function Devices() {
     }
 
     useEffect(() => {
-        load();
+        load(1);
     }, []);
 
     async function unlink(device) {
@@ -48,7 +51,7 @@ export default function Devices() {
         try {
             await api.post(`/devices/${device.id}/unlink`);
             setNotice(`${device.name} desvinculado.`);
-            await load();
+            await load(meta?.current_page ?? 1);
         } catch (unlinkError) {
             setError(errorMessage(unlinkError, 'No se pudo desvincular el dispositivo.'));
         } finally {
@@ -124,6 +127,8 @@ export default function Devices() {
                     </ul>
                 )}
             </div>
+
+            <Pagination meta={meta} onChange={(next) => load(next)} />
         </div>
     );
 }

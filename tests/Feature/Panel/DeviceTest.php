@@ -23,6 +23,7 @@ class DeviceTest extends TestCase
 
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
+        $response->assertJsonPath('meta.total', 1);
         $response->assertJsonMissing(['name' => $foreign->name]);
     }
 

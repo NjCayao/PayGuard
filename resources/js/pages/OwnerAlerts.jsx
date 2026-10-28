@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import DateCell from '../components/DateCell';
+import Pagination from '../components/Pagination';
 import {
     alertErrorClass,
     cardClass,
@@ -9,7 +11,7 @@ import {
     labelClass,
     secondaryButtonClass,
 } from '../components/ui';
-import { formatDateTime, formatMoney } from '../utils/format';
+import { formatMoney } from '../utils/format';
 import { alertStatus, toneClass } from '../utils/status';
 
 const statusOptions = [
@@ -27,8 +29,7 @@ export default function OwnerAlerts() {
     const { user } = useAuth();
     const [items, setItems] = useState([]);
     const [filters, setFilters] = useState(emptyFilters);
-    const [page, setPage] = useState(1);
-    const [lastPage, setLastPage] = useState(1);
+    const [meta, setMeta] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -44,8 +45,7 @@ export default function OwnerAlerts() {
             });
             const response = await api.get('/owner-alerts', { params });
             setItems(response.data.data);
-            setPage(response.data.meta.current_page);
-            setLastPage(response.data.meta.last_page);
+            setMeta(response.data.meta);
         } catch (loadError) {
             setError(errorMessage(loadError, 'No se pudo cargar las alertas.'));
         } finally {
@@ -136,7 +136,7 @@ export default function OwnerAlerts() {
                         parezca sospechoso o el celular se desconecte.
                     </p>
                 ) : (
-                    <table className="w-full min-w-[680px] text-left text-sm">
+                    <table className="w-full min-w-[600px] text-left text-sm">
                         <thead>
                             <tr className="border-b border-slate-200 text-slate-600">
                                 <th className="px-6 py-3 font-semibold">Fecha</th>
@@ -151,8 +151,8 @@ export default function OwnerAlerts() {
                                 const state = alertStatus(item);
                                 return (
                                     <tr key={item.id}>
-                                        <td className="whitespace-nowrap px-6 py-3 text-slate-900">
-                                            {formatDateTime(item.created_at, timeZone)}
+                                        <td className="px-6 py-3 text-slate-900">
+                                            <DateCell value={item.created_at} timeZone={timeZone} />
                                         </td>
                                         <td className="whitespace-nowrap px-4 py-3 text-slate-900">
                                             {item.to}
@@ -169,7 +169,10 @@ export default function OwnerAlerts() {
                                                 <span className="text-slate-600">—</span>
                                             )}
                                         </td>
-                                        <td className="max-w-[240px] truncate px-4 py-3 text-slate-600">
+                                        <td
+                                            className="max-w-[240px] truncate px-4 py-3 text-slate-600"
+                                            title={item.reason}
+                                        >
                                             {item.reason}
                                         </td>
                                         <td className="whitespace-nowrap px-4 py-3">
@@ -183,29 +186,7 @@ export default function OwnerAlerts() {
                 )}
             </div>
 
-            {lastPage > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                    <button
-                        type="button"
-                        disabled={page <= 1}
-                        onClick={() => load(page - 1)}
-                        className={secondaryButtonClass}
-                    >
-                        Anterior
-                    </button>
-                    <p className="text-sm text-slate-600">
-                        Página {page} de {lastPage}
-                    </p>
-                    <button
-                        type="button"
-                        disabled={page >= lastPage}
-                        onClick={() => load(page + 1)}
-                        className={secondaryButtonClass}
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            )}
+            <Pagination meta={meta} onChange={(next) => load(next)} />
         </div>
     );
 }

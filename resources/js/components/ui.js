@@ -16,6 +16,12 @@ export const dangerButtonClass =
 
 export const linkButtonClass = 'text-sm font-semibold text-emerald-800 hover:underline';
 
+export const pageButtonClass =
+    'rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
+
+export const activePageButtonClass =
+    'rounded-md bg-emerald-700 px-3 py-1 text-sm font-semibold text-white';
+
 export const cardClass = 'rounded-lg border border-slate-200 bg-white p-6 shadow-sm';
 
 export const alertErrorClass =

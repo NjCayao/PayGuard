@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import DateCell from '../components/DateCell';
+import Pagination from '../components/Pagination';
 import {
     alertErrorClass,
     cardClass,
@@ -9,7 +10,7 @@ import {
     labelClass,
     secondaryButtonClass,
 } from '../components/ui';
-import { formatDateTime, formatMoney } from '../utils/format';
+import { formatMoney } from '../utils/format';
 import { inputTypeLabel, toneClass, verificationStatus } from '../utils/status';
 
 const statusOptions = [
@@ -37,8 +38,7 @@ export default function Verifications() {
     const [items, setItems] = useState([]);
     const [cashiers, setCashiers] = useState([]);
     const [filters, setFilters] = useState(emptyFilters);
-    const [page, setPage] = useState(1);
-    const [lastPage, setLastPage] = useState(1);
+    const [meta, setMeta] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -54,8 +54,7 @@ export default function Verifications() {
             });
             const response = await api.get('/verifications', { params });
             setItems(response.data.data);
-            setPage(response.data.meta.current_page);
-            setLastPage(response.data.meta.last_page);
+            setMeta(response.data.meta);
         } catch (loadError) {
             setError(errorMessage(loadError, 'No se pudo cargar las verificaciones.'));
         } finally {
@@ -214,7 +213,7 @@ export default function Verifications() {
                         consulten por WhatsApp.
                     </p>
                 ) : (
-                    <table className="w-full min-w-[760px] text-left text-sm">
+                    <table className="w-full min-w-[640px] text-left text-sm">
                         <thead>
                             <tr className="border-b border-slate-200 text-slate-600">
                                 <th className="px-6 py-3 font-semibold">Fecha</th>
@@ -231,13 +230,12 @@ export default function Verifications() {
                                 const badge = verificationStatus(item);
                                 return (
                                     <tr key={item.id}>
-                                        <td className="whitespace-nowrap px-6 py-3 text-slate-900">
-                                            <Link
+                                        <td className="px-6 py-3 text-slate-900">
+                                            <DateCell
+                                                value={item.created_at}
+                                                timeZone={timeZone}
                                                 to={`/app/verificaciones/${item.id}`}
-                                                className="font-semibold text-emerald-800 hover:underline"
-                                            >
-                                                {formatDateTime(item.created_at, timeZone)}
-                                            </Link>
+                                            />
                                         </td>
                                         <td className="px-4 py-3 text-slate-900">{item.cashier.name}</td>
                                         <td className="px-4 py-3 text-slate-900">
@@ -252,7 +250,10 @@ export default function Verifications() {
                                         <td className="whitespace-nowrap px-4 py-3">
                                             <span className={toneClass[badge.tone]}>{badge.label}</span>
                                         </td>
-                                        <td className="max-w-[220px] truncate px-4 py-3 text-slate-600">
+                                        <td
+                                            className="max-w-[220px] truncate px-4 py-3 text-slate-600"
+                                            title={item.reason ?? undefined}
+                                        >
                                             {item.reason ?? '—'}
                                         </td>
                                     </tr>
@@ -263,29 +264,7 @@ export default function Verifications() {
                 )}
             </div>
 
-            {lastPage > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                    <button
-                        type="button"
-                        disabled={page <= 1}
-                        onClick={() => load(page - 1)}
-                        className={secondaryButtonClass}
-                    >
-                        Anterior
-                    </button>
-                    <p className="text-sm text-slate-600">
-                        Página {page} de {lastPage}
-                    </p>
-                    <button
-                        type="button"
-                        disabled={page >= lastPage}
-                        onClick={() => load(page + 1)}
-                        className={secondaryButtonClass}
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            )}
+            <Pagination meta={meta} onChange={(next) => load(next)} />
         </div>
     );
 }

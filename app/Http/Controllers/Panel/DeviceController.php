@@ -16,7 +16,7 @@ class DeviceController extends Controller
     {
         $devices = Device::forBusiness($request->user()->business_id)
             ->orderBy('name')
-            ->get();
+            ->paginate(config('payguard.devices_per_page'));
 
         return DeviceResource::collection($devices);
     }

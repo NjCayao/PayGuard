@@ -143,6 +143,8 @@ return [
 
     'owner_alerts_per_page' => 20,
 
+    'devices_per_page' => 20,
+
     'exports' => [
         'max_rows' => (int) env('PAYGUARD_EXPORT_MAX_ROWS', 2000),
         'max_range_days' => (int) env('PAYGUARD_EXPORT_MAX_RANGE_DAYS', 31),

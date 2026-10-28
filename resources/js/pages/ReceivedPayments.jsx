@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import DateCell from '../components/DateCell';
+import Pagination from '../components/Pagination';
 import {
     alertErrorClass,
     cardClass,
@@ -8,13 +10,12 @@ import {
     labelClass,
     secondaryButtonClass,
 } from '../components/ui';
-import { formatDateTime, formatMoney } from '../utils/format';
+import { formatMoney } from '../utils/format';
 
 export default function ReceivedPayments() {
     const { user } = useAuth();
     const [payments, setPayments] = useState([]);
-    const [page, setPage] = useState(1);
-    const [lastPage, setLastPage] = useState(1);
+    const [meta, setMeta] = useState(null);
     const [date, setDate] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -29,8 +30,7 @@ export default function ReceivedPayments() {
             }
             const response = await api.get('/received-payments', { params });
             setPayments(response.data.data);
-            setPage(response.data.meta.current_page);
-            setLastPage(response.data.meta.last_page);
+            setMeta(response.data.meta);
         } catch (loadError) {
             setError(errorMessage(loadError, 'No se pudo cargar los pagos.'));
         } finally {
@@ -91,7 +91,7 @@ export default function ReceivedPayments() {
                         celular envíe las notificaciones de Yape.
                     </p>
                 ) : (
-                    <table className="w-full min-w-[640px] text-left text-sm">
+                    <table className="w-full min-w-[560px] text-left text-sm">
                         <thead>
                             <tr className="border-b border-slate-200 text-slate-600">
                                 <th className="px-6 py-3 font-semibold">Fecha y hora</th>
@@ -105,8 +105,8 @@ export default function ReceivedPayments() {
                         <tbody className="divide-y divide-slate-200">
                             {payments.map((payment) => (
                                 <tr key={payment.id}>
-                                    <td className="whitespace-nowrap px-6 py-3 text-slate-900">
-                                        {formatDateTime(payment.received_at, timeZone)}
+                                    <td className="px-6 py-3 text-slate-900">
+                                        <DateCell value={payment.received_at} timeZone={timeZone} />
                                     </td>
                                     <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">
                                         {formatMoney(payment.amount)}
@@ -138,29 +138,7 @@ export default function ReceivedPayments() {
                 )}
             </div>
 
-            {lastPage > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                    <button
-                        type="button"
-                        disabled={page <= 1}
-                        onClick={() => load(page - 1)}
-                        className={secondaryButtonClass}
-                    >
-                        Anterior
-                    </button>
-                    <p className="text-sm text-slate-600">
-                        Página {page} de {lastPage}
-                    </p>
-                    <button
-                        type="button"
-                        disabled={page >= lastPage}
-                        onClick={() => load(page + 1)}
-                        className={secondaryButtonClass}
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            )}
+            <Pagination meta={meta} onChange={(next) => load(next)} />
         </div>
     );
 }
