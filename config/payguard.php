@@ -38,11 +38,50 @@ return [
     */
 
     'whatsapp' => [
+        'api_version' => env('WHATSAPP_API_VERSION', 'v26.0'),
         'token' => env('WHATSAPP_TOKEN'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'app_secret' => env('WHATSAPP_APP_SECRET'),
         'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
-        'alert_template' => env('WHATSAPP_ALERT_TEMPLATE'),
+        'alert_template' => env('WHATSAPP_ALERT_TEMPLATE', 'alerta_pago_sospechoso'),
+        'alert_template_lang' => env('WHATSAPP_ALERT_TEMPLATE_LANG', 'es'),
+        'media_disk' => env('WHATSAPP_MEDIA_DISK', 'local'),
+        'media_max_mb' => (int) env('WHATSAPP_MEDIA_MAX_MB', 16),
+        'media_allowed_mimes' => [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'audio/ogg',
+            'audio/mpeg',
+            'audio/mp4',
+            'audio/aac',
+        ],
+        'unknown_dedup_hours' => (int) env('WHATSAPP_UNKNOWN_DEDUP_HOURS', 24),
+        'timeout_seconds' => (int) env('WHATSAPP_TIMEOUT_SECONDS', 30),
+
+        'replies' => [
+            'unauthorized' => 'Este número no está autorizado en PayGuard. Pide al dueño que te registre.',
+            'unsupported' => 'Envíame la captura del Yape (imagen) o un audio.',
+            'error' => 'No pude revisar este pago. Inténtalo de nuevo en un momento.',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Owner registration protection
+    |--------------------------------------------------------------------------
+    |
+    | throttle is an "attempts,minutes" pair for the registration rate
+    | limiter. The Turnstile keys default to Cloudflare's official test
+    | keys; production uses the real keys from the server .env.
+    |
+    */
+
+    'registration' => [
+        'throttle' => env('PAYGUARD_REGISTER_THROTTLE', '5,60'),
+        'honeypot_field' => 'website',
+        'turnstile_site_key' => env('TURNSTILE_SITE_KEY', '1x00000000000000000000AA'),
+        'turnstile_secret_key' => env('TURNSTILE_SECRET_KEY', '1x0000000000000000000000000000000AA'),
     ],
 
     'cashiers_per_page' => 20,

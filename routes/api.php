@@ -7,10 +7,16 @@ use App\Http\Controllers\Panel\AuthController;
 use App\Http\Controllers\Panel\CashierController;
 use App\Http\Controllers\Panel\DeviceController as PanelDeviceController;
 use App\Http\Controllers\Panel\ReceivedPaymentController;
+use App\Http\Controllers\WhatsApp\WebhookController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/webhooks/whatsapp', [WebhookController::class, 'verify'])->name('webhooks.whatsapp.verify');
+Route::post('/webhooks/whatsapp', [WebhookController::class, 'handle'])->name('webhooks.whatsapp.handle');
+
 Route::prefix('panel')->name('panel.')->group(function () {
-    Route::post('/register', [AuthController::class, 'register'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])
+        ->middleware('throttle:'.config('payguard.registration.throttle'))
+        ->name('register');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
 
     Route::middleware('auth:sanctum')->group(function () {
