@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\WhatsApp;
 
+use App\Jobs\AnalyzeScreenshotVerification;
 use App\Jobs\ProcessIncomingMessage;
 use App\Models\Cashier;
 use App\Models\Verification;
@@ -11,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Tests\TestCase;
@@ -26,6 +28,7 @@ class ProcessIncomingMessageTest extends TestCase
         config()->set('payguard.whatsapp.token', 'test-token');
         config()->set('payguard.whatsapp.phone_number_id', '12345');
         Storage::fake('local');
+        Queue::fake([AnalyzeScreenshotVerification::class]);
     }
 
     public function test_replies_to_unknown_number_only_once(): void
@@ -97,6 +100,9 @@ class ProcessIncomingMessageTest extends TestCase
         $this->assertSame($cashier->id, $verification->cashier_id);
         $this->assertSame(hash('sha256', 'fake-image-bytes'), $verification->media_sha256);
         Storage::disk('local')->assertExists($verification->media_path);
+        Queue::assertPushed(AnalyzeScreenshotVerification::class, function ($job) use ($verification) {
+            return $job->verificationId === $verification->id;
+        });
     }
 
     public function test_stores_audio_and_creates_verification(): void
@@ -118,6 +124,7 @@ class ProcessIncomingMessageTest extends TestCase
         $this->assertSame('audio', $verification->input_type);
         $this->assertSame(hash('sha256', 'fake-audio-bytes'), $verification->media_sha256);
         Storage::disk('local')->assertExists($verification->media_path);
+        Queue::assertNotPushed(AnalyzeScreenshotVerification::class);
     }
 
     public function test_first_attempt_fails_and_retry_succeeds(): void
@@ -179,7 +186,7 @@ class ProcessIncomingMessageTest extends TestCase
         Storage::disk('local')->assertExists($verification->media_path);
     }
 
-    public function test_ignores_duplicate_of_completed_verification(): void
+    public function test_redispatches_analysis_for_processing_verification_with_media(): void
     {
         Http::fake();
 
@@ -204,6 +211,35 @@ class ProcessIncomingMessageTest extends TestCase
 
         $this->assertDatabaseCount('verifications', 1);
         Http::assertNothingSent();
+        Queue::assertPushed(AnalyzeScreenshotVerification::class);
+    }
+
+    public function test_ignores_redelivery_of_resolved_verification(): void
+    {
+        Http::fake();
+
+        $cashier = Cashier::factory()->create();
+        Verification::create([
+            'business_id' => $cashier->business_id,
+            'cashier_id' => $cashier->id,
+            'wa_message_id' => 'wamid.resolved',
+            'input_type' => 'image',
+            'media_path' => 'whatsapp/1/1.jpg',
+            'media_sha256' => hash('sha256', 'fake-image-bytes'),
+            'status' => 'verified',
+        ]);
+
+        ProcessIncomingMessage::dispatch([
+            'wa_message_id' => 'wamid.resolved',
+            'from' => $cashier->whatsapp,
+            'type' => 'image',
+            'media_id' => 'media1',
+            'text' => null,
+        ]);
+
+        $this->assertDatabaseCount('verifications', 1);
+        Http::assertNothingSent();
+        Queue::assertNotPushed(AnalyzeScreenshotVerification::class);
     }
 
     public function test_releases_job_when_message_is_locked(): void
@@ -270,6 +306,7 @@ class ProcessIncomingMessageTest extends TestCase
 
         $this->assertSame('text', $verification->input_type);
         $this->assertSame(['raw_text' => 'Llego un Yape de 50?'], $verification->extracted);
+        Queue::assertNotPushed(AnalyzeScreenshotVerification::class);
     }
 
     public function test_failed_marks_verification_as_error_and_replies(): void
