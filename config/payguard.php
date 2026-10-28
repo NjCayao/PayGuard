@@ -29,6 +29,8 @@ return [
         'api_key' => env('META_MODEL_API_KEY'),
         'vision_model' => env('META_MODEL_VISION', 'muse-spark-1.3'),
         'transcribe_model' => env('META_MODEL_TRANSCRIBE', 'muse-voice-transcribe-1.0'),
+        'vision_timeout' => (int) env('META_MODEL_VISION_TIMEOUT', 60),
+        'vision_max_tokens' => (int) env('META_MODEL_VISION_MAX_TOKENS', 1000),
     ],
 
     /*
@@ -91,6 +93,69 @@ return [
     'cashiers_per_page' => 20,
 
     'received_payments_per_page' => 20,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Verification engine
+    |--------------------------------------------------------------------------
+    |
+    | recent_minutes: a screenshot older than this goes straight to not_found
+    | instead of pending. recheck_interval_seconds: delay between automatic
+    | rechecks while pending. processing_timeout_minutes: a verification stuck
+    | in processing for longer than this is closed by expire-stuck.
+    | notify_hours: expire-stuck stays silent for older messages.
+    | reasons holds the Spanish templates sent to the cashier; the same text
+    | is stored in verifications.reason.
+    |
+    */
+
+    'verification' => [
+        'recent_minutes' => (int) env('PAYGUARD_RECENT_MINUTES', 15),
+        'recheck_interval_seconds' => (int) env('PAYGUARD_RECHECK_INTERVAL_SECONDS', 20),
+        'processing_timeout_minutes' => (int) env('PAYGUARD_PROCESSING_TIMEOUT_MINUTES', 30),
+        'notify_hours' => (int) env('PAYGUARD_EXPIRE_NOTIFY_HOURS', 24),
+        'wallet_labels' => [
+            'yape' => 'Yape',
+            'plin' => 'Plin',
+        ],
+        'status_emoji' => [
+            'verified' => '✅',
+            'pending' => '⏳',
+            'reviewing' => '⏳',
+            'not_found' => '❌',
+            'mismatch' => '❌',
+            'reused' => '❌',
+        ],
+        'reasons' => [
+            'verified' => 'Llegó :amount de :payer por :wallet a las :time.',
+            'pending' => 'Todavía no llega el pago de :amount. Sigo revisando y te aviso.',
+            'already_reviewing' => 'Ya estoy revisando esta captura.',
+            'reused' => 'Esta captura ya se usó antes.',
+            'not_found' => 'No llegó ningún pago de :amount.',
+            'stale' => 'La captura es del :date, muy vieja para revisarla.',
+            'unreadable' => 'No pude leer los datos de la captura.',
+            'mismatch_recipient' => 'El pago no es para este negocio.',
+            'mismatch_code' => 'El código de seguridad no coincide.',
+            'mismatch_amount' => 'Llegó un pago parecido de :amount, no de :expected.',
+            'expired' => 'La revisión tardó demasiado. Vuelve a enviar la captura.',
+            'edit_suffix' => ' Además, la imagen muestra señales de edición.',
+            'holder_skipped_suffix' => ' (destinatario no verificado)',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment simulator
+    |--------------------------------------------------------------------------
+    |
+    | The payguard:simulate-payment command refuses to run in production
+    | unless this flag is enabled on purpose.
+    |
+    */
+
+    'simulator' => [
+        'enabled' => (bool) env('PAYGUARD_SIMULATOR_ENABLED', false),
+    ],
 
     /*
     |--------------------------------------------------------------------------

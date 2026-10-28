@@ -2,6 +2,8 @@
 
 namespace App\Services\Payments;
 
+use App\Services\Support\Amounts;
+
 class YapeNotificationParser implements NotificationParser
 {
     public function wallet(): string
@@ -84,33 +86,6 @@ class YapeNotificationParser implements NotificationParser
 
     private function normalizeAmount(string $raw): ?string
     {
-        $clean = str_replace(' ', '', $raw);
-
-        if (str_contains($clean, '.') && str_contains($clean, ',')) {
-            if (strrpos($clean, '.') > strrpos($clean, ',')) {
-                $clean = str_replace(',', '', $clean);
-            } else {
-                $clean = str_replace('.', '', $clean);
-                $clean = str_replace(',', '.', $clean);
-            }
-        } elseif (str_contains($clean, ',')) {
-            if (preg_match('/,\d{2}$/', $clean) === 1) {
-                $clean = str_replace(',', '.', $clean);
-            } else {
-                $clean = str_replace(',', '', $clean);
-            }
-        }
-
-        if (! is_numeric($clean)) {
-            return null;
-        }
-
-        $value = round((float) $clean, 2);
-
-        if ($value <= 0 || $value >= 100000000) {
-            return null;
-        }
-
-        return number_format($value, 2, '.', '');
+        return Amounts::normalize($raw);
     }
 }
