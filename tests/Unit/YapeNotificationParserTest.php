@@ -71,6 +71,13 @@ class YapeNotificationParserTest extends TestCase
         $this->assertNull($this->parser->parse('Yape! Aprovecha esta promoción solo por hoy'));
     }
 
+    public function test_discards_payment_shaped_promo(): void
+    {
+        $this->assertNull($this->parser->parse(
+            '¡Juan te envió un pago! Gana premios y cashback, participa en esta oferta con beneficios'
+        ));
+    }
+
     public function test_discards_purchase(): void
     {
         $this->assertNull($this->parser->parse('Tu compra en TOTTUS por S/ 30 con Yape'));

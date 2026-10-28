@@ -16,6 +16,13 @@ class YapeVoiceParserTest {
                 "descuento",
                 "sorteo",
                 "\\bcompra\\b",
+                "\\bganaste\\b",
+                "\\bgana\\b",
+                "premio",
+                "cashback",
+                "oferta",
+                "beneficio",
+                "participa",
             ),
             receivedMarkers = listOf(
                 "te envi[óo] un pago",
@@ -78,6 +85,11 @@ class YapeVoiceParserTest {
     @Test
     fun ignoresPromo() {
         assertNull(parser().parse("Nueva promoción: descuento en tu compra con Yape"))
+    }
+
+    @Test
+    fun ignoresPaymentShapedPromo() {
+        assertNull(parser().parse("¡Juan te envió un pago! Gana premios y cashback, participa en esta oferta con beneficios"))
     }
 
     @Test

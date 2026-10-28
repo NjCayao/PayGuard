@@ -11,6 +11,13 @@
         <item>descuento</item>
         <item>sorteo</item>
         <item>\bcompra\b</item>
+        <item>\bganaste\b</item>
+        <item>\bgana\b</item>
+        <item>premio</item>
+        <item>cashback</item>
+        <item>oferta</item>
+        <item>beneficio</item>
+        <item>participa</item>
     </string-array>
 
     <string-array name="voice_received_markers">
