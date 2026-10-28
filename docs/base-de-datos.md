@@ -94,7 +94,7 @@ La app se autentica con token de Sanctum ligado al dispositivo: el modelo Device
 | extracted | json null | Datos leídos por Muse Spark |
 | wallet | enum(`yape`,`plin`) null | Copia de los datos clave para buscar y mostrar |
 | amount | decimal(10,2) null | |
-| payer_name | varchar(120) null | |
+| recipient_name | varchar(120) null | Destinatario leído de la captura; se compara con `businesses.yape_holder_name` |
 | security_code | char(3) null | Código de Yape leído de la captura |
 | paid_at | datetime null | Fecha y hora del pago según la captura, en UTC |
 | operation_code | varchar(40) null | |
@@ -112,8 +112,8 @@ La app se autentica con token de Sanctum ligado al dispositivo: el modelo Device
 ## Reglas de verificación (resumen)
 
 1. Buscar en `received_payments` del mismo negocio: misma billetera, **mismo monto**, `received_at` dentro de ±`match_window_minutes` de `paid_at`, y **sin** verificación asociada. El nombre de quien paga no se compara: la captura muestra a quién se pagó, no quién pagó.
-2. Si ambos tienen código de seguridad, **debe coincidir**; es la prueba más fuerte. El destinatario de la captura debe ser igual a `yape_holder_name` del negocio. Si hay varias candidatas, elegir la de hora más cercana.
-3. Si la imagen (`media_sha256`) o el número de operación ya se usaron en una verificación aprobada → `reused`.
-4. Si no hay coincidencia todavía y la captura es reciente → `pending` y volver a buscar hasta `recheck_until`.
-5. Si hay un pago parecido pero el monto o el nombre no cuadran → `mismatch` con el motivo.
+2. Si ambos tienen código de seguridad, **debe coincidir**; es la prueba más fuerte. Si ambos traen número de operación y difieren, el candidato se descarta. El destinatario de la captura (`recipient_name`) debe ser igual a `yape_holder_name` del negocio, salvo que el negocio no lo tenga configurado. Si hay varias candidatas, elegir la de hora más cercana.
+3. Captura repetida: mismo `operation_code`, mismo `security_code` + monto + `paid_at` al minuto, mismo `media_sha256`, o cruce con un pago real que ya confirmó otra verificación. Si la anterior está aprobada → `reused`; si sigue en revisión → se responde que ya se está revisando; si fue rechazada → se repite su resultado. Las verificaciones en `error` no cuentan.
+4. Si no hay coincidencia todavía y la captura es reciente (`paid_at` dentro de `recent_minutes`) → `pending` y volver a buscar hasta `recheck_until`.
+5. Si hay un pago parecido pero el monto, el código o el destinatario no cuadran → `mismatch` con el motivo.
 6. Las señales de edición de la IA se informan en el motivo y suben la alerta, pero **el resultado lo decide la comparación con el pago real**.

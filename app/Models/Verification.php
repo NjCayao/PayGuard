@@ -22,7 +22,7 @@ class Verification extends Model
         'extracted',
         'wallet',
         'amount',
-        'payer_name',
+        'recipient_name',
         'security_code',
         'paid_at',
         'operation_code',
