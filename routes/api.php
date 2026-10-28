@@ -4,9 +4,14 @@ use App\Http\Controllers\Device\AuthController as DeviceAuthController;
 use App\Http\Controllers\Device\HeartbeatController;
 use App\Http\Controllers\Device\PaymentController;
 use App\Http\Controllers\Panel\AuthController;
+use App\Http\Controllers\Panel\BusinessSettingsController;
 use App\Http\Controllers\Panel\CashierController;
 use App\Http\Controllers\Panel\DeviceController as PanelDeviceController;
+use App\Http\Controllers\Panel\OwnerAlertController;
 use App\Http\Controllers\Panel\ReceivedPaymentController;
+use App\Http\Controllers\Panel\SummaryController;
+use App\Http\Controllers\Panel\VerificationController;
+use App\Http\Controllers\Panel\VerificationExportController;
 use App\Http\Controllers\WhatsApp\WebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +36,18 @@ Route::prefix('panel')->name('panel.')->group(function () {
         Route::delete('/cashiers/{cashier}', [CashierController::class, 'destroy'])->name('cashiers.destroy');
 
         Route::get('/received-payments', [ReceivedPaymentController::class, 'index'])->name('received-payments.index');
+
+        Route::get('/verifications/export', [VerificationExportController::class, 'export'])->name('verifications.export');
+        Route::get('/verifications', [VerificationController::class, 'index'])->name('verifications.index');
+        Route::get('/verifications/{verification}', [VerificationController::class, 'show'])->name('verifications.show');
+        Route::get('/verifications/{verification}/image', [VerificationController::class, 'image'])->name('verifications.image');
+
+        Route::get('/owner-alerts', [OwnerAlertController::class, 'index'])->name('owner-alerts.index');
+
+        Route::get('/settings', [BusinessSettingsController::class, 'show'])->name('settings.show');
+        Route::put('/settings', [BusinessSettingsController::class, 'update'])->name('settings.update');
+
+        Route::get('/summary', [SummaryController::class, 'index'])->name('summary.index');
 
         Route::get('/devices', [PanelDeviceController::class, 'index'])->name('devices.index');
         Route::post('/devices/{device}/unlink', [PanelDeviceController::class, 'unlink'])->name('devices.unlink');

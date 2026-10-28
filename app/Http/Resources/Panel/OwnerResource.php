@@ -17,6 +17,7 @@ class OwnerResource extends JsonResource
                 'id' => $this->business->id,
                 'name' => $this->business->name,
                 'owner_whatsapp' => $this->business->owner_whatsapp,
+                'yape_holder_name' => $this->business->yape_holder_name,
                 'match_window_minutes' => $this->business->match_window_minutes,
                 'recheck_minutes' => $this->business->recheck_minutes,
                 'timezone' => $this->business->timezone,
