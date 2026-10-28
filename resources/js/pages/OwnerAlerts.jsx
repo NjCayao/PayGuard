@@ -21,6 +21,7 @@ const statusOptions = [
     { value: 'delivered', label: 'Entregado' },
     { value: 'read', label: 'Leído' },
     { value: 'failed', label: 'Fallido' },
+    { value: 'simulated', label: 'Simulada (demo)' },
 ];
 
 const emptyFilters = { date_from: '', date_to: '', status: '' };

@@ -14,6 +14,7 @@ import Devices from './pages/Devices';
 import OwnerAlerts from './pages/OwnerAlerts';
 import Settings from './pages/Settings';
 import Account from './pages/Account';
+import Trial from './pages/Trial';
 
 export default function Panel() {
     return (
@@ -53,6 +54,7 @@ export default function Panel() {
                         <Route path="alertas" element={<OwnerAlerts />} />
                         <Route path="configuracion" element={<Settings />} />
                         <Route path="mi-cuenta" element={<Account />} />
+                        <Route path="probar" element={<Trial />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/app" replace />} />
                 </Routes>

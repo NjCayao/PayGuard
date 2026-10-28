@@ -48,6 +48,11 @@ export default function Layout() {
                             {link.label}
                         </NavLink>
                     ))}
+                    {isDemo(user) && (
+                        <NavLink to="/app/probar" className={navClass}>
+                            Probar PayGuard
+                        </NavLink>
+                    )}
                 </nav>
                 <div className="mt-auto hidden border-t border-slate-200 px-6 py-4 lg:block">
                     <p className="truncate text-sm font-medium text-slate-900">

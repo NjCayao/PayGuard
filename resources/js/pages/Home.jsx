@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import Bilingual from '../components/Bilingual';
 import { alertErrorClass, cardClass } from '../components/ui';
+import { isDemo } from '../utils/demo';
 import { formatDateTime, formatMoney } from '../utils/format';
 
 function Stat({ label, value, hint }) {
@@ -35,6 +38,15 @@ export default function Home() {
             <p className="mt-1 text-slate-600">
                 Hola, {user?.name} · {user?.business?.name}
             </p>
+
+            {isDemo(user) && (
+                <Link
+                    to="/app/probar"
+                    className="mt-4 inline-block rounded-lg bg-emerald-700 px-6 py-3 text-center font-bold text-white shadow-sm hover:bg-emerald-800"
+                >
+                    <Bilingual es="Probar PayGuard" en="Try PayGuard" />
+                </Link>
+            )}
 
             {error !== '' && <p className={`${alertErrorClass} mt-4`}>{error}</p>}
 

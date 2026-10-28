@@ -60,6 +60,8 @@ export function alertStatus(item) {
             return { label: 'Entregado', tone: 'ok' };
         case 'read':
             return { label: 'Leído', tone: 'ok' };
+        case 'simulated':
+            return { label: 'Simulada (demo)', tone: 'info' };
         default:
             return { label: 'Fallido', tone: 'bad' };
     }
