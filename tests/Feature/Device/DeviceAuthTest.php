@@ -26,6 +26,7 @@ class DeviceAuthTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.device.name', 'Xiaomi Redmi 12');
+        $response->assertJsonPath('data.business_name', $owner->business->name);
         $this->assertNotEmpty($response->json('data.token'));
 
         $device = Device::where('business_id', $owner->business_id)->firstOrFail();

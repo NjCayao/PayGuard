@@ -28,6 +28,7 @@ class AuthController extends Controller
 
         return response()->json(['data' => [
             'token' => $result['token'],
+            'business_name' => $result['device']->business->name,
             'device' => [
                 'id' => $result['device']->id,
                 'name' => $result['device']->name,

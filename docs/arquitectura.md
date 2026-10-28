@@ -57,6 +57,7 @@ flowchart LR
 | `POST /webhooks/whatsapp` | Mensajes entrantes | Firma de Meta |
 | `POST /api/device/login` | La app inicia sesión y registra el dispositivo | Credenciales del dueño + límite de intentos |
 | `POST /api/device/payments` | La app envía una notificación (idempotente) | Token Sanctum del dispositivo |
+| `GET /api/device/payments` | La app lista sus pagos recientes (límite 50) + contador de hoy | Token Sanctum del dispositivo |
 | `POST /api/device/heartbeat` | La app avisa que sigue activa | Token Sanctum |
 | `POST /api/device/logout` | La app cierra sesión y revoca su token | Token Sanctum |
 | `POST /api/panel/register` | Registro del dueño: crea negocio y usuario juntos | Pública |

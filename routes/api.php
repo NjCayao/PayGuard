@@ -38,6 +38,7 @@ Route::prefix('device')->name('device.')->group(function () {
 
     Route::middleware(['auth:sanctum', 'throttle:'.config('payguard.device.api_throttle')])->group(function () {
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
+        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/heartbeat', [HeartbeatController::class, 'store'])->name('heartbeat.store');
         Route::post('/logout', [DeviceAuthController::class, 'logout'])->name('logout');
     });
