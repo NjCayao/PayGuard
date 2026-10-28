@@ -87,6 +87,56 @@ class PaymentIngestTest extends TestCase
         $this->assertSame(1, ReceivedPayment::count());
     }
 
+    public function test_resending_same_notification_with_different_keys_creates_single_row(): void
+    {
+        $owner = User::factory()->create();
+        $token = $this->tokenFor($owner);
+
+        $this->withToken($token)->postJson('/api/device/payments', $this->payload())->assertCreated();
+
+        $response = $this->withToken($token)
+            ->postJson('/api/device/payments', $this->payload(['idempotency_key' => 'key-2']));
+
+        $response->assertOk();
+        $response->assertJsonPath('data.duplicate', true);
+        $this->assertSame(1, ReceivedPayment::count());
+    }
+
+    public function test_distinct_payments_with_different_keys_create_two_rows(): void
+    {
+        $owner = User::factory()->create();
+        $token = $this->tokenFor($owner);
+
+        $this->withToken($token)->postJson('/api/device/payments', $this->payload())->assertCreated();
+
+        $response = $this->withToken($token)
+            ->postJson('/api/device/payments', $this->payload([
+                'text' => 'JUAN PEREZ te envió un pago por S/ 51. El cód. de seguridad es: 123',
+                'idempotency_key' => 'key-2',
+            ]));
+
+        $response->assertCreated();
+        $this->assertSame(2, ReceivedPayment::count());
+    }
+
+    public function test_same_text_after_window_creates_new_row(): void
+    {
+        $owner = User::factory()->create();
+        $device = Device::factory()->create(['business_id' => $owner->business_id]);
+        ReceivedPayment::factory()->create([
+            'business_id' => $owner->business_id,
+            'device_id' => $device->id,
+            'raw_text' => "Yape!\nJUAN PEREZ te envió un pago por S/ 50",
+            'created_at' => now()->subMinutes(11),
+        ]);
+
+        $this->withToken($device->createToken('android-app')->plainTextToken)
+            ->postJson('/api/device/payments', $this->payload())
+            ->assertCreated();
+
+        $this->assertSame(2, ReceivedPayment::count());
+    }
+
     public function test_foreign_idempotency_key_returns_no_details(): void
     {
         $owner = User::factory()->create();

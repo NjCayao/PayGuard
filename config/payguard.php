@@ -177,7 +177,10 @@ return [
     |
     | offline_minutes: a device with no heartbeat for longer than this is
     | shown as disconnected in the panel. The throttles are "attempts,minutes"
-    | pairs for the device API rate limiter.
+    | pairs for the device API rate limiter. payment_duplicate_minutes: a
+    | payment whose normalized text matches another one from the same
+    | business and package within this window is rejected as a duplicate,
+    | even when the idempotency key differs (old app versions).
     |
     */
 
@@ -186,6 +189,7 @@ return [
         'offline_alert_cooldown_minutes' => (int) env('PAYGUARD_OFFLINE_ALERT_COOLDOWN_MINUTES', 30),
         'login_throttle' => env('PAYGUARD_DEVICE_LOGIN_THROTTLE', '10,1'),
         'api_throttle' => env('PAYGUARD_DEVICE_API_THROTTLE', '120,1'),
+        'payment_duplicate_minutes' => (int) env('PAYGUARD_PAYMENT_DUPLICATE_MINUTES', 10),
     ],
 
     /*

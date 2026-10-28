@@ -16,7 +16,7 @@ Built from scratch for the Meta Global AI Developer Hackathon (Oct 26 - Nov 4, 2
 
 ## Code style
 - Clean, simple and readable code. Small classes with one responsibility; thin controllers; business logic in `app/Services`.
-- **No emojis** in code, comments, logs, commit messages or docs written by the agent. The only exception: WhatsApp replies to cashiers may start with one status symbol (✅, ⏳ or ❌).
+- **No emojis** in code, comments, logs, commit messages or docs written by the agent. The only exception: WhatsApp replies to cashiers may start with one status symbol (✅, ⏳, ❌ or ⚠).
 - Code identifiers, database names and comments in **English**. Everything the user sees (panel, app, WhatsApp replies) in **Spanish**, short and clear.
 - Comments only where the reason is not obvious. No commented-out code.
 - Validation with Form Requests. Responses from the panel API in a consistent JSON shape.
