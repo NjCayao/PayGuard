@@ -18,6 +18,8 @@ class SimulatePaymentCommandTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('payguard.simulator.enabled', false);
+
         $this->business = Business::factory()->create(['timezone' => 'America/Lima']);
         Device::factory()->for($this->business)->create();
     }

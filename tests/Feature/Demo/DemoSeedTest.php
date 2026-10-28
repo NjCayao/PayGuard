@@ -23,6 +23,7 @@ class DemoSeedTest extends TestCase
 
         config()->set('payguard.demo.email', 'demo@example.com');
         config()->set('payguard.demo.password', 'demo-secret-1');
+        config()->set('payguard.demo.enabled', false);
         Storage::fake('local');
     }
 
