@@ -8,16 +8,16 @@ use JsonException;
 
 class MetaModelClient
 {
-    public function complete(array $messages, array $responseFormat): array
+    public function complete(array $messages, array $responseFormat, ?int $maxTokens = null, ?int $timeout = null): array
     {
         try {
             $response = Http::withToken((string) config('payguard.meta.api_key'))
-                ->timeout((int) config('payguard.meta.vision_timeout'))
+                ->timeout($timeout ?? (int) config('payguard.meta.vision_timeout'))
                 ->acceptJson()
                 ->post($this->url('/chat/completions'), [
                     'model' => config('payguard.meta.vision_model'),
                     'temperature' => 0,
-                    'max_tokens' => (int) config('payguard.meta.vision_max_tokens'),
+                    'max_tokens' => $maxTokens ?? (int) config('payguard.meta.vision_max_tokens'),
                     'messages' => $messages,
                     'response_format' => $responseFormat,
                 ]);
