@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('landing');
+    return view('landing', ['apkUrl' => config('payguard.apk.url')]);
 });
 
 Route::get('/app/{any?}', function () {

@@ -277,6 +277,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Companion app download
+    |--------------------------------------------------------------------------
+    |
+    | The APK is uploaded manually to the server (outside git) and the panel
+    | only shows the link. url must be absolute so the QR code and the
+    | WhatsApp share text work outside the panel. version and date are free
+    | text shown as-is. When url is null, the panel shows "coming soon".
+    |
+    */
+
+    'apk' => [
+        'url' => env('PAYGUARD_APK_URL'),
+        'version' => env('PAYGUARD_APK_VERSION'),
+        'date' => env('PAYGUARD_APK_DATE'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Notification reading
     |--------------------------------------------------------------------------
     |

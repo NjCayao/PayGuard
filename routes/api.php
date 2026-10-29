@@ -4,6 +4,7 @@ use App\Http\Controllers\Device\AuthController as DeviceAuthController;
 use App\Http\Controllers\Device\HeartbeatController;
 use App\Http\Controllers\Device\PaymentController;
 use App\Http\Controllers\Panel\AccountController;
+use App\Http\Controllers\Panel\AppDownloadController;
 use App\Http\Controllers\Panel\AuthController;
 use App\Http\Controllers\Panel\BusinessSettingsController;
 use App\Http\Controllers\Panel\CashierController;
@@ -59,6 +60,8 @@ Route::prefix('panel')->name('panel.')->group(function () {
 
         Route::get('/devices', [PanelDeviceController::class, 'index'])->name('devices.index');
         Route::post('/devices/{device}/unlink', [PanelDeviceController::class, 'unlink'])->name('devices.unlink');
+
+        Route::get('/app-download', [AppDownloadController::class, 'show'])->name('app-download.show');
 
         Route::get('/trial/session', [TrialController::class, 'show'])->name('trial.session');
         Route::post('/trial/image', [TrialController::class, 'storeImage'])->middleware('throttle:trial')->name('trial.image');

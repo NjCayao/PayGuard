@@ -39,6 +39,44 @@ flutter build apk --release --dart-define=API_BASE_URL=https://staging.example.c
 2. Open it and allow "install unknown apps" when Android asks.
 3. Open PayGuard and log in with the owner account.
 
+## Distributing the APK
+
+The panel does not upload files. The owner copies each release to the
+server by hand (WinSCP) at `public/apk/payguard.apk` (outside git:
+`*.apk` is ignored, only `public/apk/.gitkeep` is committed) and sets
+the matching values in the server `.env`:
+
+```
+PAYGUARD_APK_URL=https://payguard.micaleth.com/apk/payguard.apk
+PAYGUARD_APK_VERSION=1.0.0
+PAYGUARD_APK_DATE=28 oct. 2026
+```
+
+The panel reads them from `config('payguard.apk.*')`: the Device page
+shows the download section and the public landing shows a "Descargar
+app" button. When no URL is configured, the Device page shows "La app
+estará disponible pronto" and the landing hides the button.
+
+Verify Nginx serves the file with the APK content type:
+
+```bash
+curl -sI https://payguard.micaleth.com/apk/payguard.apk | grep -i content-type
+# content-type: application/vnd.android.package-archive
+```
+
+Stock Nginx on Ubuntu already maps `.apk` in `mime.types`, so no
+server change is normally needed. If the check above shows another
+type, add this block inside the site `server {}` before `location /`:
+
+```nginx
+location = /apk/payguard.apk {
+    types { application/vnd.android.package-archive apk; }
+    default_type application/vnd.android.package-archive;
+    add_header Content-Disposition 'attachment; filename="payguard.apk"' always;
+    expires 1h;
+}
+```
+
 ## Owner guide: permissions (do all of them)
 
 1. **Read notifications.** The app opens the system screen: find

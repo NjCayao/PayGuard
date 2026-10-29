@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import AppDownload from '../components/AppDownload';
 import DemoNotice from '../components/DemoNotice';
 import Pagination from '../components/Pagination';
 import { DEMO_BLOCKED_MESSAGE, isDemo } from '../utils/demo';
@@ -17,6 +18,7 @@ export default function Devices() {
     const demo = isDemo(user);
     const [devices, setDevices] = useState([]);
     const [meta, setMeta] = useState(null);
+    const [download, setDownload] = useState(null);
     const [loading, setLoading] = useState(true);
     const [notice, setNotice] = useState('');
     const [error, setError] = useState('');
@@ -38,6 +40,10 @@ export default function Devices() {
 
     useEffect(() => {
         load(1);
+
+        api.get('/app-download')
+            .then((response) => setDownload(response.data.data))
+            .catch(() => setDownload(null));
     }, []);
 
     async function unlink(device) {
@@ -69,6 +75,12 @@ export default function Devices() {
 
             {notice !== '' && <p className={`${alertOkClass} mt-4`}>{notice}</p>}
             {error !== '' && <p className={`${alertErrorClass} mt-4`}>{error}</p>}
+
+            {download !== null && !loading && (meta?.total ?? 0) === 0 && (
+                <div className="mt-4">
+                    <AppDownload download={download} variant="prominent" />
+                </div>
+            )}
 
             <div className={`${cardClass} mt-4 p-0`}>
                 {loading ? (
@@ -129,6 +141,12 @@ export default function Devices() {
             </div>
 
             <Pagination meta={meta} onChange={(next) => load(next)} />
+
+            {download !== null && !loading && (meta?.total ?? 0) > 0 && (
+                <div className="mt-6">
+                    <AppDownload download={download} variant="compact" />
+                </div>
+            )}
         </div>
     );
 }

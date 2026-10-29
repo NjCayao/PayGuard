@@ -58,6 +58,14 @@
                     >
                         Crear cuenta
                     </a>
+                    @if ($apkUrl)
+                        <a
+                            href="{{ $apkUrl }}"
+                            class="rounded-md border border-slate-300 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                            Descargar app
+                        </a>
+                    @endif
                 </div>
             </div>
 
