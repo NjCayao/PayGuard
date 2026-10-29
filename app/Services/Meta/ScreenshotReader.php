@@ -21,19 +21,19 @@ class ScreenshotReader
         $business = $verification->business;
 
         if ($business === null) {
-            throw new MetaModelException('Verification has no business.');
+            throw new ScreenshotInvalidException('Verification has no business.');
         }
 
         $disk = Storage::disk(config('payguard.whatsapp.media_disk'));
 
         if ($verification->media_path === null || ! $disk->exists($verification->media_path)) {
-            throw new MetaModelException('Screenshot file is missing.');
+            throw new ScreenshotInvalidException('Screenshot file is missing.');
         }
 
         $mime = self::MIMES[strtolower(pathinfo($verification->media_path, PATHINFO_EXTENSION))] ?? null;
 
         if ($mime === null) {
-            throw new MetaModelException('Unsupported screenshot type.');
+            throw new ScreenshotInvalidException('Unsupported screenshot type.');
         }
 
         $bytes = $disk->get($verification->media_path);

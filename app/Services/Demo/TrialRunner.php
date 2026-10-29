@@ -57,7 +57,18 @@ class TrialRunner
             'extracted' => ['raw_text' => $text],
         ]);
 
-        $this->parser->parse($text)->applyTo($verification);
+        try {
+            $this->parser->parse($text)->applyTo($verification);
+        } catch (MetaModelException) {
+            $verification->update([
+                'status' => 'error',
+                'reason' => 'No se pudo revisar tu consulta.',
+                'reason_code' => 'error',
+            ]);
+
+            return TrialResult::fromVerification($verification->fresh(), $this->replies, $business);
+        }
+
         $verification->refresh();
 
         $query = $verification->extracted['query'] ?? null;

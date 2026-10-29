@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Verification;
+use App\Services\Meta\ScreenshotInvalidException;
 use App\Services\Meta\ScreenshotReader;
 use App\Services\Verification\VerificationService;
 use App\Services\WhatsApp\WhatsAppClient;
@@ -16,11 +17,15 @@ class AnalyzeScreenshotVerification implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries;
 
-    public array $backoff = [10, 30, 90];
+    public array $backoff;
 
-    public function __construct(public int $verificationId) {}
+    public function __construct(public int $verificationId)
+    {
+        $this->tries = max(1, (int) config('payguard.screenshot.tries', 2));
+        $this->backoff = array_fill(0, $this->tries - 1, max(1, (int) config('payguard.screenshot.backoff_seconds', 5)));
+    }
 
     public function handle(ScreenshotReader $reader, VerificationService $service): void
     {
@@ -44,7 +49,15 @@ class AnalyzeScreenshotVerification implements ShouldQueue
 
         try {
             if ($verification->extracted === null) {
-                $reader->read($verification)->applyTo($verification);
+                try {
+                    $reader->read($verification)->applyTo($verification);
+                } catch (ScreenshotInvalidException $e) {
+                    $lock->release();
+
+                    $this->failed($e);
+
+                    return;
+                }
             }
 
             $service->analyze($verification, allowPending: true);

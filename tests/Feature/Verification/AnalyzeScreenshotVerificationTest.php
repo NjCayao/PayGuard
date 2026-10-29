@@ -321,6 +321,36 @@ class AnalyzeScreenshotVerificationTest extends TestCase
         $this->assertTextReply($verification, 'No pude revisar este pago. Inténtalo de nuevo en un momento.');
     }
 
+    public function test_missing_file_fails_immediately_without_retry(): void
+    {
+        $this->fakeWhatsApp();
+
+        $verification = Verification::factory()->for($this->business)->for($this->cashier)->create([
+            'input_type' => 'image',
+            'status' => 'processing',
+        ]);
+
+        $this->runJob($verification);
+
+        $verification->refresh();
+
+        $this->assertSame('error', $verification->status);
+        $this->assertSame('No se pudo leer la captura.', $verification->reason);
+        $this->assertTextReply($verification, 'No pude revisar este pago. Inténtalo de nuevo en un momento.');
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.meta.ai'));
+    }
+
+    public function test_retries_come_from_config(): void
+    {
+        config()->set('payguard.screenshot.tries', 3);
+        config()->set('payguard.screenshot.backoff_seconds', 9);
+
+        $job = new AnalyzeScreenshotVerification(1);
+
+        $this->assertSame(3, $job->tries);
+        $this->assertSame([9, 9], $job->backoff);
+    }
+
     public function test_releases_job_when_verification_is_locked(): void
     {
         Http::fake();

@@ -303,6 +303,23 @@ class TrialTest extends TestCase
         $response->assertJsonPath('data.reply', '❌ No se pudo leer la captura.');
     }
 
+    public function test_query_model_failure_returns_error_result(): void
+    {
+        Http::fake(['api.meta.ai/*' => Http::response(['error' => 'boom'], 500)]);
+        Http::preventStrayRequests();
+
+        $response = $this->actingAs($this->owner)->postJson(
+            '/api/panel/trial/query',
+            ['text' => 'yape de 50'],
+            $this->headers()
+        );
+
+        $response->assertOk();
+        $response->assertJsonPath('data.status', 'error');
+        $response->assertJsonPath('data.reason_code', 'error');
+        $response->assertJsonPath('data.reply', '❌ No se pudo revisar tu consulta.');
+    }
+
     private function headers(?string $key = null): array
     {
         return ['X-Trial-Key' => $key ?? $this->key];
