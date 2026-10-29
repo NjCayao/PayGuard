@@ -5,7 +5,6 @@ namespace App\Services\Verification;
 use App\Models\ReceivedPayment;
 use App\Models\Verification;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 class PaymentMatcher
 {
@@ -21,12 +20,12 @@ class PaymentMatcher
             fn (ReceivedPayment $payment) => bccomp((string) $payment->amount, (string) $verification->amount, 2) === 0
         );
 
-        $holderSkipped = blank($business->yape_holder_name);
+        $recipientUnchecked = blank($business->yape_holder_name) || blank($verification->recipient_name);
         $codeMismatch = false;
         $recipientMismatch = false;
 
         $holder = $business->yape_holder_name;
-        $checkRecipient = ! $holderSkipped && $verification->recipient_name !== null;
+        $checkRecipient = ! blank($holder) && ! blank($verification->recipient_name);
 
         $survivors = $sameAmount->filter(function (ReceivedPayment $payment) use ($verification, $holder, $checkRecipient, &$codeMismatch, &$recipientMismatch) {
             if ($this->codesDiffer($verification->security_code, $payment->security_code)) {
@@ -39,7 +38,9 @@ class PaymentMatcher
                 return false;
             }
 
-            if ($checkRecipient && ! $this->sameRecipient($verification->recipient_name, $holder)) {
+            $codeMatch = $this->codesMatch($verification->security_code, $payment->security_code);
+
+            if (! $codeMatch && $checkRecipient && ! RecipientMatcher::matches($verification->recipient_name, $holder)) {
                 $recipientMismatch = true;
 
                 return false;
@@ -55,7 +56,7 @@ class PaymentMatcher
                 status: 'verified',
                 reasonCode: 'verified',
                 receivedPaymentId: $winner->id,
-                holderSkipped: $holderSkipped,
+                holderSkipped: $recipientUnchecked,
             );
         }
 
@@ -65,16 +66,16 @@ class PaymentMatcher
             return new VerificationOutcome(
                 status: 'reused',
                 reasonCode: 'reused',
-                holderSkipped: $holderSkipped,
+                holderSkipped: $recipientUnchecked,
             );
         }
 
         if ($codeMismatch) {
-            return new VerificationOutcome('mismatch', 'mismatch_code', holderSkipped: $holderSkipped);
+            return new VerificationOutcome('mismatch', 'mismatch_code', holderSkipped: $recipientUnchecked);
         }
 
         if ($recipientMismatch) {
-            return new VerificationOutcome('mismatch', 'mismatch_recipient', holderSkipped: $holderSkipped);
+            return new VerificationOutcome('mismatch', 'mismatch_recipient', holderSkipped: $recipientUnchecked);
         }
 
         $otherAmount = $pool->reject(
@@ -87,7 +88,7 @@ class PaymentMatcher
             return new VerificationOutcome('mismatch', 'mismatch_amount', [
                 'amount' => (string) $nearest->amount,
                 'expected' => (string) $verification->amount,
-            ], holderSkipped: $holderSkipped);
+            ], holderSkipped: $recipientUnchecked);
         }
 
         if ($paidAt->lt(now()->subMinutes((int) config('payguard.verification.recent_minutes')))) {
@@ -125,7 +126,9 @@ class PaymentMatcher
             fn (ReceivedPayment $payment) => bccomp((string) $payment->amount, (string) $verification->amount, 2) === 0
                 && ! $this->codesDiffer($verification->security_code, $payment->security_code)
                 && ! $this->codesDiffer($verification->operation_code, $payment->operation_code)
-                && (! $checkRecipient || $this->sameRecipient($verification->recipient_name, $verification->business->yape_holder_name))
+                && ($this->codesMatch($verification->security_code, $payment->security_code)
+                    || ! $checkRecipient
+                    || RecipientMatcher::matches($verification->recipient_name, $verification->business->yape_holder_name))
         );
 
         return $candidates->isEmpty() ? null : $this->nearest($candidates, $paidAt);
@@ -138,15 +141,10 @@ class PaymentMatcher
             && $screenshot !== $payment;
     }
 
-    private function sameRecipient(?string $screenshot, ?string $holder): bool
+    private function codesMatch(?string $screenshot, ?string $payment): bool
     {
-        if ($screenshot === null || $holder === null) {
-            return false;
-        }
-
-        $normalize = fn (string $name) => trim((string) preg_replace('/\s+/', ' ', Str::ascii(mb_strtolower($name))));
-
-        return $normalize($screenshot) !== '' && $normalize($screenshot) === $normalize($holder);
+        return $screenshot !== null && $screenshot !== ''
+            && $screenshot === $payment;
     }
 
     private function nearest(Collection $payments, $paidAt): ReceivedPayment

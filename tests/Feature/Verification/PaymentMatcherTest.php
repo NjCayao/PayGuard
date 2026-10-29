@@ -111,6 +111,44 @@ class PaymentMatcherTest extends TestCase
         $verification = $this->verification(['recipient_name' => null]);
         $this->payment();
 
+        $outcome = app(PaymentMatcher::class)->match($verification);
+
+        $this->assertSame('verified', $outcome->status);
+        $this->assertTrue($outcome->holderSkipped);
+    }
+
+    public function test_matching_security_code_skips_name_check(): void
+    {
+        $verification = $this->verification(['recipient_name' => 'Pedro Lopez', 'security_code' => '123']);
+        $payment = $this->payment(['security_code' => '123']);
+
+        $outcome = app(PaymentMatcher::class)->match($verification);
+
+        $this->assertSame('verified', $outcome->status);
+        $this->assertSame($payment->id, $outcome->receivedPaymentId);
+    }
+
+    public function test_flexible_recipient_name_verifies(): void
+    {
+        $this->business->update(['yape_holder_name' => 'Nilson Jhonny Cayao Fernandez']);
+
+        $verification = $this->verification(['recipient_name' => 'Nilson J Cayao F']);
+        $payment = $this->payment();
+
+        $outcome = app(PaymentMatcher::class)->match($verification);
+
+        $this->assertSame('verified', $outcome->status);
+        $this->assertSame($payment->id, $outcome->receivedPaymentId);
+        $this->assertFalse($outcome->holderSkipped);
+    }
+
+    public function test_truncated_yape_name_verifies(): void
+    {
+        $this->business->update(['yape_holder_name' => 'Nilson Jhonny Cayao Fernandez']);
+
+        $verification = $this->verification(['recipient_name' => 'Nilson Cay**']);
+        $this->payment();
+
         $this->assertSame('verified', app(PaymentMatcher::class)->match($verification)->status);
     }
 
