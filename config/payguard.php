@@ -32,7 +32,7 @@ return [
         'vision_timeout' => (int) env('META_MODEL_VISION_TIMEOUT', 60),
         'vision_max_tokens' => (int) env('META_MODEL_VISION_MAX_TOKENS', 1000),
         'transcribe_timeout' => (int) env('META_MODEL_TRANSCRIBE_TIMEOUT', 30),
-        'query_max_tokens' => (int) env('META_MODEL_QUERY_MAX_TOKENS', 300),
+        'query_max_tokens' => (int) env('META_MODEL_QUERY_MAX_TOKENS', 1000),
         'asr_mode' => env('META_MODEL_ASR_MODE', 'PUSH_TO_TALK'),
         'asr_language_bias' => ['Spanish'],
         'asr_keywords' => ['Yape', 'Plin', 'soles', 'luca', 'lucas'],
@@ -53,6 +53,9 @@ return [
 
     'query' => [
         'window_minutes' => (int) env('PAYGUARD_QUERY_WINDOW_MINUTES', 10),
+        'no_amount_minutes' => (int) env('PAYGUARD_QUERY_NO_AMOUNT_MINUTES', 3),
+        'tries' => (int) env('PAYGUARD_QUERY_TRIES', 2),
+        'backoff_seconds' => (int) env('PAYGUARD_QUERY_BACKOFF_SECONDS', 2),
         'max_listed_matches' => 3,
         'prefilter_patterns' => [
             '/\d/u',
@@ -75,6 +78,21 @@ return [
     'support' => [
         'ffmpeg_path' => env('PAYGUARD_FFMPEG_PATH', 'ffmpeg'),
         'ffmpeg_timeout' => (int) env('PAYGUARD_FFMPEG_TIMEOUT', 30),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Screenshot analysis retries
+    |--------------------------------------------------------------------------
+    |
+    | tries and backoff_seconds mirror the query settings above. Screenshots
+    | have no rules fallback, so a second quick attempt is still worth it.
+    |
+    */
+
+    'screenshot' => [
+        'tries' => (int) env('PAYGUARD_SCREENSHOT_TRIES', 2),
+        'backoff_seconds' => (int) env('PAYGUARD_SCREENSHOT_BACKOFF_SECONDS', 5),
     ],
 
     /*
@@ -176,6 +194,7 @@ return [
         ],
         'status_emoji' => [
             'verified' => '✅',
+            'ask_amount' => '⚠',
             'pending' => '⏳',
             'reviewing' => '⏳',
             'not_found' => '❌',
@@ -203,6 +222,9 @@ return [
             'expired_query' => 'La revisión tardó demasiado. Vuelve a preguntar.',
             'multiple_matches' => 'Hay :count pagos por :wallet de :amount recientes: :items. Mándame la captura para saber cuál es.',
             'already_confirmed' => 'Ese :wallet ya fue confirmado a las :confirmed — mándame la captura para revisarlo.',
+            'amountless_single' => ':wallet recibido: :amount de :payer a las :time. Compáralo con la pantalla del cliente.',
+            'amountless_multiple' => 'Hay :count pagos recientes sin revisar: :items. Mándame la captura para saber cuál es.',
+            'ask_amount' => '¿De cuánto fue el Yape? Escríbeme, por ejemplo: yape de 50.',
             'edit_suffix' => ' Además, la imagen muestra señales de edición.',
             'holder_skipped_suffix' => ' (destinatario no verificado)',
         ],

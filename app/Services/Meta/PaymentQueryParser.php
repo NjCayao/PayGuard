@@ -55,6 +55,7 @@ class PaymentQueryParser
             - wallet: "yape", "plin" or "unknown". An amount in soles, "S/", "lucas" or no wallet mentioned means "yape" unless Plin is named.
             - amount: the asked amount as a decimal string like "50.00", or null if there is none. Understand Spanish number words ("cincuenta" is 50, "veinte con cincuenta" is 20.50) and slang ("50 lucas" is 50).
             - payer_name: the payer first or full name if mentioned ("de Juan" is "Juan"), or null.
+            - security_code: the 3-digit security code if the cashier says it ("código 944", "cód 944"), or null.
             Use null for any field you cannot read. Do not guess values.
             PROMPT;
     }
@@ -68,8 +69,9 @@ class PaymentQueryParser
                 'wallet' => ['type' => 'string'],
                 'amount' => ['type' => ['string', 'number', 'null']],
                 'payer_name' => ['type' => ['string', 'null']],
+                'security_code' => ['type' => ['string', 'number', 'null']],
             ],
-            'required' => ['is_payment_query', 'wallet', 'amount', 'payer_name'],
+            'required' => ['is_payment_query', 'wallet', 'amount', 'payer_name', 'security_code'],
             'additionalProperties' => false,
         ];
     }

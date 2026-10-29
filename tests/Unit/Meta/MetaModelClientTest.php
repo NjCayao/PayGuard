@@ -5,7 +5,12 @@ namespace Tests\Unit\Meta;
 use App\Services\Meta\MetaModelClient;
 use App\Services\Meta\MetaModelException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Log\Logger;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Monolog\Handler\TestHandler;
+use Monolog\LogRecord;
+use Monolog\Logger as MonologLogger;
 use Tests\TestCase;
 
 class MetaModelClientTest extends TestCase
@@ -70,6 +75,34 @@ class MetaModelClientTest extends TestCase
         $this->expectException(MetaModelException::class);
 
         app(MetaModelClient::class)->complete([], ['type' => 'json_object']);
+    }
+
+    public function test_empty_content_reports_finish_reason_and_usage(): void
+    {
+        $handler = new TestHandler();
+        Log::swap(new Logger(new MonologLogger('test', [$handler])));
+
+        Http::fake(['api.meta.ai/*' => Http::response([
+            'choices' => [['message' => ['content' => ''], 'finish_reason' => 'length']],
+            'usage' => ['prompt_tokens' => 120, 'completion_tokens' => 300, 'total_tokens' => 420],
+        ])]);
+
+        try {
+            app(MetaModelClient::class)->complete([], ['type' => 'json_object'], maxTokens: 300);
+            $this->fail('An empty response should throw.');
+        } catch (MetaModelException $e) {
+            $this->assertStringContainsString('finish_reason: length', $e->getMessage());
+        }
+
+        $this->assertTrue($handler->hasWarningRecords());
+
+        $record = $handler->getRecords()[0];
+        $context = $record instanceof LogRecord ? $record->context : $record['context'];
+
+        $this->assertSame('Meta Model API returned an empty response.', $record instanceof LogRecord ? $record->message : $record['message']);
+        $this->assertSame('length', $context['finish_reason']);
+        $this->assertSame(420, $context['usage']['total_tokens']);
+        $this->assertSame(300, $context['max_tokens']);
     }
 
     public function test_throws_on_invalid_json(): void

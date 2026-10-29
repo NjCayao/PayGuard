@@ -85,6 +85,8 @@ class VerificationService
     private function analyzeQuery(Verification $verification, bool $allowPending): void
     {
         if ($verification->amount === null) {
+            $this->analyzeAmountlessQuery($verification);
+
             return;
         }
 
@@ -101,6 +103,19 @@ class VerificationService
 
             return;
         }
+
+        if ($outcome->status === 'verified') {
+            $this->claim($verification, $outcome);
+
+            return;
+        }
+
+        $this->finalize($verification, $outcome);
+    }
+
+    private function analyzeAmountlessQuery(Verification $verification): void
+    {
+        $outcome = $this->queryMatcher->matchWithoutAmount($verification);
 
         if ($outcome->status === 'verified') {
             $this->claim($verification, $outcome);

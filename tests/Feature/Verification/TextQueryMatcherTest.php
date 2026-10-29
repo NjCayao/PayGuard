@@ -142,6 +142,127 @@ class TextQueryMatcherTest extends TestCase
         $this->assertSame('retry', app(TextQueryMatcher::class)->match($verification)->status);
     }
 
+    public function test_matching_security_code_verifies(): void
+    {
+        $verification = $this->queryVerification(['security_code' => '944']);
+        $payment = $this->payment(['security_code' => '944']);
+
+        $outcome = app(TextQueryMatcher::class)->match($verification);
+
+        $this->assertSame('verified', $outcome->status);
+        $this->assertSame($payment->id, $outcome->receivedPaymentId);
+    }
+
+    public function test_payment_without_code_does_not_match_coded_query(): void
+    {
+        $verification = $this->queryVerification(['security_code' => '944']);
+        $this->payment(['security_code' => null]);
+
+        $outcome = app(TextQueryMatcher::class)->match($verification);
+
+        $this->assertSame('mismatch', $outcome->status);
+        $this->assertSame('mismatch_code', $outcome->reasonCode);
+    }
+
+    public function test_code_found_with_other_amount_is_mismatch_amount(): void
+    {
+        $verification = $this->queryVerification(['security_code' => '944']);
+        $this->payment(['amount' => '10.00', 'security_code' => '944']);
+
+        $outcome = app(TextQueryMatcher::class)->match($verification);
+
+        $this->assertSame('mismatch', $outcome->status);
+        $this->assertSame('mismatch_amount', $outcome->reasonCode);
+        $this->assertSame('10.00', $outcome->params['amount']);
+        $this->assertSame('50.00', $outcome->params['expected']);
+    }
+
+    public function test_unknown_code_is_not_found(): void
+    {
+        $verification = $this->queryVerification(['security_code' => '944']);
+        $this->payment(['security_code' => '123']);
+
+        $outcome = app(TextQueryMatcher::class)->match($verification);
+
+        $this->assertSame('mismatch', $outcome->status);
+        $this->assertSame('mismatch_code', $outcome->reasonCode);
+    }
+
+    public function test_code_without_any_payment_is_not_found(): void
+    {
+        $verification = $this->queryVerification(['security_code' => '944']);
+
+        $outcome = app(TextQueryMatcher::class)->match($verification);
+
+        $this->assertSame('not_found', $outcome->status);
+        $this->assertSame('not_found', $outcome->reasonCode);
+    }
+
+    public function test_claimed_coded_payment_reports_already_confirmed(): void
+    {
+        $verification = $this->queryVerification(['security_code' => '944']);
+        $payment = $this->payment(['security_code' => '944']);
+
+        Verification::factory()
+            ->for($this->business)->for($this->cashier)
+            ->create(['status' => 'verified', 'received_payment_id' => $payment->id]);
+
+        $outcome = app(TextQueryMatcher::class)->match($verification);
+
+        $this->assertSame('reused', $outcome->status);
+        $this->assertSame('already_confirmed', $outcome->reasonCode);
+    }
+
+    public function test_amountless_single_match_is_verified_and_claims(): void
+    {
+        $verification = $this->queryVerification(['amount' => null]);
+        $payment = $this->payment(['received_at' => now()->subMinute()]);
+
+        $outcome = app(TextQueryMatcher::class)->matchWithoutAmount($verification);
+
+        $this->assertSame('verified', $outcome->status);
+        $this->assertSame('amountless_single', $outcome->reasonCode);
+        $this->assertSame($payment->id, $outcome->receivedPaymentId);
+        $this->assertSame('50.00', $outcome->params['amount']);
+    }
+
+    public function test_amountless_several_matches_list_with_amounts(): void
+    {
+        $verification = $this->queryVerification(['amount' => null]);
+        $this->payment(['amount' => '50.00', 'received_at' => now()->subMinutes(2)]);
+        $this->payment(['amount' => '20.00', 'received_at' => now()->subMinute()]);
+
+        $outcome = app(TextQueryMatcher::class)->matchWithoutAmount($verification);
+
+        $this->assertSame('not_found', $outcome->status);
+        $this->assertSame('amountless_multiple', $outcome->reasonCode);
+        $this->assertNull($outcome->receivedPaymentId);
+        $this->assertSame('2', $outcome->params['count']);
+        $this->assertSame('20.00', $outcome->params['matches'][0]['amount']);
+    }
+
+    public function test_amountless_without_payments_asks_for_amount(): void
+    {
+        $verification = $this->queryVerification(['amount' => null]);
+
+        $outcome = app(TextQueryMatcher::class)->matchWithoutAmount($verification);
+
+        $this->assertSame('not_found', $outcome->status);
+        $this->assertSame('ask_amount', $outcome->reasonCode);
+    }
+
+    public function test_amountless_ignores_payments_outside_its_window(): void
+    {
+        config()->set('payguard.query.no_amount_minutes', 3);
+
+        $verification = $this->queryVerification(['amount' => null]);
+        $this->payment(['received_at' => now()->subMinutes(5)]);
+
+        $outcome = app(TextQueryMatcher::class)->matchWithoutAmount($verification);
+
+        $this->assertSame('ask_amount', $outcome->reasonCode);
+    }
+
     public function test_old_payments_are_outside_the_window(): void
     {
         config()->set('payguard.query.window_minutes', 10);

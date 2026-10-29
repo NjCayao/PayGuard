@@ -23,6 +23,9 @@ class CashierReplies
         'expired' => 'error',
         'multiple_matches' => 'multiple',
         'already_confirmed' => 'already_confirmed',
+        'amountless_single' => 'verified',
+        'amountless_multiple' => 'multiple',
+        'ask_amount' => 'ask_amount',
     ];
 
     private const FINAL_CODES = [
@@ -145,7 +148,13 @@ class CashierReplies
                 ? trim($match['payer'])
                 : 'un cliente';
 
-            $items[] = "{$payer} ({$this->time(Carbon::parse($match['received_at']), $timezone)})";
+            $label = "{$payer} ({$this->time(Carbon::parse($match['received_at']), $timezone)})";
+
+            if (isset($match['amount']) && is_string($match['amount'])) {
+                $label = self::formatAmount($match['amount'])." de {$label}";
+            }
+
+            $items[] = $label;
         }
 
         if (count($items) < 2) {

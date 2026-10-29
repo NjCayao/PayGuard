@@ -4,6 +4,7 @@ namespace App\Services\Meta;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use JsonException;
 
 class MetaModelClient
@@ -29,10 +30,22 @@ class MetaModelClient
             throw new MetaModelException("Meta Model API error: HTTP {$response->status()}.");
         }
 
-        $content = $response->json('choices.0.message.content');
+        $choice = $response->json('choices.0', []);
+        $content = is_array($choice) ? ($choice['message']['content'] ?? null) : null;
 
         if (! is_string($content) || $content === '') {
-            throw new MetaModelException('Meta Model API returned an empty response.');
+            $finishReason = is_array($choice) ? ($choice['finish_reason'] ?? 'unknown') : 'unknown';
+
+            Log::warning('Meta Model API returned an empty response.', [
+                'model' => config('payguard.meta.vision_model'),
+                'finish_reason' => $finishReason,
+                'usage' => $response->json('usage', []),
+                'max_tokens' => $maxTokens ?? (int) config('payguard.meta.vision_max_tokens'),
+            ]);
+
+            throw new MetaModelException(
+                "Meta Model API returned an empty response (finish_reason: {$finishReason})."
+            );
         }
 
         try {

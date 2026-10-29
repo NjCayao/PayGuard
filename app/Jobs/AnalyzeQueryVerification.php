@@ -3,7 +3,9 @@
 namespace App\Jobs;
 
 use App\Models\Verification;
+use App\Services\Meta\MetaModelException;
 use App\Services\Meta\PaymentQueryParser;
+use App\Services\Meta\QueryAmountFallback;
 use App\Services\Meta\VoiceTranscriber;
 use App\Services\Verification\VerificationService;
 use App\Services\WhatsApp\WhatsAppClient;
@@ -17,15 +19,20 @@ class AnalyzeQueryVerification implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries;
 
-    public array $backoff = [10, 30, 90];
+    public array $backoff;
 
-    public function __construct(public int $verificationId) {}
+    public function __construct(public int $verificationId)
+    {
+        $this->tries = max(1, (int) config('payguard.query.tries', 2));
+        $this->backoff = array_fill(0, $this->tries - 1, max(1, (int) config('payguard.query.backoff_seconds', 2)));
+    }
 
     public function handle(
         VoiceTranscriber $transcriber,
         PaymentQueryParser $parser,
+        QueryAmountFallback $fallback,
         VerificationService $service,
     ): void {
         $verification = Verification::find($this->verificationId);
@@ -67,17 +74,25 @@ class AnalyzeQueryVerification implements ShouldQueue
                     ? $verification->transcript
                     : ($verification->extracted['raw_text'] ?? null);
 
-                $parser->parse($text)->applyTo($verification);
+                try {
+                    $parsed = $parser->parse($text);
+                } catch (MetaModelException $e) {
+                    Log::warning('Query parse failed, using rules fallback.', [
+                        'verification_id' => $verification->id,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    $parsed = $fallback->parse((string) $text);
+                }
+
+                $parsed->applyTo($verification);
             }
 
             $verification->refresh();
 
             $query = $verification->extracted['query'] ?? null;
 
-            if (! is_array($query)
-                || ($query['is_payment_query'] ?? false) !== true
-                || ($query['amount'] ?? null) === null
-            ) {
+            if (! is_array($query) || ($query['is_payment_query'] ?? false) !== true) {
                 $this->closeAsHelp($verification);
 
                 return;

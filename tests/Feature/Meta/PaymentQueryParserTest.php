@@ -41,6 +41,23 @@ class PaymentQueryParserTest extends TestCase
         });
     }
 
+    public function test_parses_security_code(): void
+    {
+        $this->fakeModel([
+            'is_payment_query' => true,
+            'wallet' => 'yape',
+            'amount' => '50.00',
+            'payer_name' => null,
+            'security_code' => '944',
+        ]);
+
+        $data = app(PaymentQueryParser::class)->parse('yape de 50, código 944');
+
+        $this->assertTrue($data->isQuery);
+        $this->assertSame('50.00', $data->amount);
+        $this->assertSame('944', $data->securityCode);
+    }
+
     public function test_unknown_wallet_defaults_to_yape(): void
     {
         $this->fakeModel([

@@ -11,6 +11,7 @@ use App\Models\ReceivedPayment;
 use App\Models\Verification;
 use App\Services\Meta\MetaModelException;
 use App\Services\Meta\PaymentQueryParser;
+use App\Services\Meta\QueryAmountFallback;
 use App\Services\Meta\VoiceTranscriber;
 use App\Services\Support\AudioConverter;
 use App\Services\Verification\VerificationService;
@@ -115,17 +116,170 @@ class AnalyzeQueryVerificationTest extends TestCase
         Queue::assertNotPushed(RecheckPendingVerification::class);
     }
 
-    public function test_query_without_amount_gets_help(): void
+    public function test_query_without_amount_asks_for_amount_when_none_arrived(): void
     {
-        $this->fakeQuery(['amount' => null]);
+        $this->fakeQuery(['amount' => null, 'payer_name' => null]);
 
         $verification = $this->textVerification('¿llegó un yape?');
 
         $this->runJob($verification);
 
-        $this->assertSame('text_help', $verification->fresh()->reason_code);
-        $this->assertTextReply($verification, 'Hola, soy PayGuard');
+        $verification->refresh();
+
+        $this->assertSame('not_found', $verification->status);
+        $this->assertSame('ask_amount', $verification->reason_code);
+        $this->assertSame('¿De cuánto fue el Yape? Escríbeme, por ejemplo: yape de 50.', $verification->reason);
+        $this->assertTextReply($verification, '⚠ ¿De cuánto fue el Yape?');
+        $this->assertNoTemplate();
         Queue::assertNotPushed(RecheckPendingVerification::class);
+    }
+
+    public function test_query_without_amount_verifies_single_recent_payment(): void
+    {
+        $this->fakeQuery(['amount' => null, 'payer_name' => null]);
+        $payment = $this->payment(['received_at' => now()->subMinute()]);
+
+        $verification = $this->textVerification('me yapearon');
+
+        $this->runJob($verification);
+
+        $verification->refresh();
+
+        $this->assertSame('verified', $verification->status);
+        $this->assertSame('amountless_single', $verification->reason_code);
+        $this->assertSame($payment->id, $verification->received_payment_id);
+        $this->assertTextReply($verification, '✅ Yape recibido: S/ 50.00 de Juan Perez a las ');
+        $this->assertNoTemplate();
+        Queue::assertNotPushed(RecheckPendingVerification::class);
+    }
+
+    public function test_query_without_amount_lists_several_recent_payments(): void
+    {
+        $this->fakeQuery(['amount' => null, 'payer_name' => null]);
+
+        $this->payment(['amount' => '50.00', 'payer_name' => 'Antoni Mon*', 'received_at' => now()->subMinutes(2)]);
+        $this->payment(['amount' => '20.00', 'payer_name' => 'Sonia Vit*', 'received_at' => now()->subMinute()]);
+
+        $verification = $this->textVerification('revisa el yape');
+
+        $this->runJob($verification);
+
+        $verification->refresh();
+
+        $this->assertSame('not_found', $verification->status);
+        $this->assertSame('amountless_multiple', $verification->reason_code);
+        $this->assertNull($verification->received_payment_id);
+        $this->assertStringStartsWith('Hay 2 pagos recientes sin revisar: ', $verification->reason);
+        $this->assertStringContainsString('S/ 50.00 de Antoni Mon*', $verification->reason);
+        $this->assertStringContainsString('S/ 20.00 de Sonia Vit*', $verification->reason);
+        $this->assertTextReply($verification, '⚠ Hay 2 pagos recientes sin revisar: ');
+        Queue::assertNotPushed(RecheckPendingVerification::class);
+    }
+
+    public function test_query_with_security_code_verifies_matching_payment(): void
+    {
+        $this->fakeQuery(['amount' => '50.00', 'security_code' => '944']);
+        $payment = $this->payment(['security_code' => '944']);
+
+        $verification = $this->textVerification('yape de 50, código 944');
+
+        $this->runJob($verification);
+
+        $verification->refresh();
+
+        $this->assertSame('verified', $verification->status);
+        $this->assertSame($payment->id, $verification->received_payment_id);
+        $this->assertSame('944', $verification->security_code);
+        $this->assertTextReply($verification, '✅ Yape recibido: S/ 50.00 de Juan Perez · Cód. 944.');
+    }
+
+    public function test_query_with_wrong_security_code_is_mismatch(): void
+    {
+        $this->fakeQuery(['amount' => '50.00', 'security_code' => '944']);
+        $this->payment(['security_code' => '123']);
+
+        $verification = $this->textVerification('yape de 50, código 944');
+
+        $this->runJob($verification);
+
+        $this->assertSame('mismatch', $verification->fresh()->status);
+        $this->assertSame('mismatch_code', $verification->fresh()->reason_code);
+        $this->assertTextReply($verification, '❌ El código de seguridad no coincide.');
+        Queue::assertNotPushed(RecheckPendingVerification::class);
+    }
+
+    public function test_query_with_unknown_security_code_is_not_found(): void
+    {
+        $this->fakeQuery(['amount' => '50.00', 'security_code' => '944']);
+
+        $verification = $this->textVerification('yape de 50, código 944');
+
+        $this->runJob($verification);
+
+        $this->assertSame('not_found', $verification->fresh()->status);
+        $this->assertTextReply($verification, '❌ No llegó ningún pago de S/ 50.00.');
+        Queue::assertNotPushed(RecheckPendingVerification::class);
+    }
+
+    public function test_parser_failure_uses_rules_fallback(): void
+    {
+        Http::fake([
+            'graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.resp']]]),
+            'api.meta.ai/*' => Http::response(['error' => 'boom'], 500),
+        ]);
+        $payment = $this->payment();
+
+        $verification = $this->textVerification('yape de 50');
+
+        $this->runJob($verification);
+
+        $verification->refresh();
+
+        $this->assertSame('verified', $verification->status);
+        $this->assertSame($payment->id, $verification->received_payment_id);
+        $this->assertTrue($verification->extracted['query']['is_payment_query']);
+        $this->assertTextReply($verification, '✅ Yape recibido: S/ 50.00 de Juan Perez');
+    }
+
+    public function test_parser_failure_without_amount_asks_for_amount(): void
+    {
+        Http::fake([
+            'graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.resp']]]),
+            'api.meta.ai/*' => Http::response(['error' => 'boom'], 500),
+        ]);
+
+        $verification = $this->textVerification('me yapearon');
+
+        $this->runJob($verification);
+
+        $this->assertSame('ask_amount', $verification->fresh()->reason_code);
+        $this->assertTextReply($verification, '⚠ ¿De cuánto fue el Yape?');
+    }
+
+    public function test_transcriber_failure_throws_for_retry(): void
+    {
+        Http::fake(['api.meta.ai/*' => Http::response(['error' => 'boom'], 500)]);
+
+        $verification = $this->audioVerification();
+
+        try {
+            $this->runJob($verification);
+            $this->fail('The job should throw so the queue retries it.');
+        } catch (MetaModelException) {
+            $this->assertSame('processing', $verification->fresh()->status);
+            $this->assertNull($verification->fresh()->transcript);
+        }
+    }
+
+    public function test_retries_come_from_config(): void
+    {
+        config()->set('payguard.query.tries', 4);
+        config()->set('payguard.query.backoff_seconds', 7);
+
+        $job = new AnalyzeQueryVerification(1);
+
+        $this->assertSame(4, $job->tries);
+        $this->assertSame([7, 7, 7], $job->backoff);
     }
 
     public function test_goes_pending_when_payment_has_not_arrived(): void
@@ -256,21 +410,6 @@ class AnalyzeQueryVerificationTest extends TestCase
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.meta.ai'));
     }
 
-    public function test_ai_failure_throws_for_retry(): void
-    {
-        Http::fake(['api.meta.ai/*' => Http::response(['error' => 'boom'], 500)]);
-
-        $verification = $this->textVerification('yape de 50');
-
-        try {
-            $this->runJob($verification);
-            $this->fail('The job should throw so the queue retries it.');
-        } catch (MetaModelException) {
-            $this->assertSame('processing', $verification->fresh()->status);
-            $this->assertArrayNotHasKey('query', $verification->fresh()->extracted ?? []);
-        }
-    }
-
     public function test_failed_marks_error_and_replies(): void
     {
         $this->fakeWhatsApp();
@@ -294,7 +433,7 @@ class AnalyzeQueryVerificationTest extends TestCase
         Cache::lock("analyze-query:{$verification->id}", 60)->acquire();
 
         $job = (new AnalyzeQueryVerification($verification->id))->withFakeQueueInteractions();
-        $job->handle(app(VoiceTranscriber::class), app(PaymentQueryParser::class), app(VerificationService::class));
+        $job->handle(app(VoiceTranscriber::class), app(PaymentQueryParser::class), app(QueryAmountFallback::class), app(VerificationService::class));
 
         $job->assertReleased();
         Http::assertNothingSent();
@@ -385,7 +524,7 @@ class AnalyzeQueryVerificationTest extends TestCase
     private function runJob(Verification $verification): void
     {
         (new AnalyzeQueryVerification($verification->id))
-            ->handle(app(VoiceTranscriber::class), app(PaymentQueryParser::class), app(VerificationService::class));
+            ->handle(app(VoiceTranscriber::class), app(PaymentQueryParser::class), app(QueryAmountFallback::class), app(VerificationService::class));
     }
 
     private function assertTextReply(Verification $verification, string $startsWith): void
