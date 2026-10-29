@@ -46,4 +46,7 @@
 
     <!-- Same normalized text announced within this window is skipped. -->
     <integer name="voice_duplicate_minutes">10</integer>
+
+    <!-- Wait after a notification before speaking, so the wallet sound ends first. -->
+    <integer name="voice_announce_delay_ms">1500</integer>
 </resources>

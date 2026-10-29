@@ -2,10 +2,12 @@ package app.payguard.mobile
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
-import java.util.UUID
+import android.speech.tts.UtteranceProgressListener
 
 data class VoiceStatus(
     val enabled: Boolean,
@@ -15,12 +17,13 @@ data class VoiceStatus(
 )
 
 object VoiceAnnouncer {
-    private data class Utterance(val text: String, val alarm: Boolean)
-
-    private val pending = mutableListOf<Utterance>()
+    private val queue = VoiceQueue()
     private var tts: TextToSpeech? = null
     private var initializing = false
     private var ready = false
+    private var flushScheduled = false
+    private var focus: AudioFocusRequest? = null
+    private var appContext: Context? = null
 
     const val TEST_PHRASE = "Prueba de voz. Yape recibido, 10 soles, de Juan."
 
@@ -66,9 +69,10 @@ object VoiceAnnouncer {
         }
         onMain {
             try {
-                pending.add(Utterance(clean, alarm))
+                appContext = app
+                queue.add(clean, alarm)
                 if (ensureInit(app)) {
-                    flush()
+                    scheduleFlush(app)
                 }
             } catch (_: Exception) {
             }
@@ -89,13 +93,15 @@ object VoiceAnnouncer {
         initializing = false
         if (state != TextToSpeech.SUCCESS) {
             tts = null
-            pending.clear()
+            queue.clear()
             return
         }
         ready = true
         try {
-            applyVoice(app, tts ?: return)
-            flush()
+            val engine = tts ?: return
+            applyVoice(app, engine)
+            listen(engine)
+            scheduleFlush(app)
         } catch (_: Exception) {
         }
     }
@@ -118,14 +124,35 @@ object VoiceAnnouncer {
         prefs.setLocaleTag(locale.toLanguageTag())
     }
 
-    private fun flush() {
+    private fun scheduleFlush(app: Context) {
+        if (flushScheduled || queue.pendingCount() == 0) {
+            return
+        }
+        flushScheduled = true
+        val delayMs = runCatching { app.resources.getInteger(R.integer.voice_announce_delay_ms) }
+            .getOrDefault(DEFAULT_DELAY_MS)
+            .toLong()
+            .coerceAtLeast(0)
+        mainHandler().postDelayed(
+            {
+                flushScheduled = false
+                try {
+                    flush(app)
+                } catch (_: Exception) {
+                }
+            },
+            delayMs,
+        )
+    }
+
+    private fun flush(app: Context) {
         val engine = tts ?: return
         if (!ready) {
             return
         }
-        val items = pending.toList()
-        pending.clear()
-        for (item in items) {
+        requestFocus(app)
+        while (true) {
+            val item = queue.next() ?: break
             val usage = if (item.alarm) {
                 AudioAttributes.USAGE_ALARM
             } else {
@@ -137,7 +164,93 @@ object VoiceAnnouncer {
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build(),
             )
-            engine.speak(item.text, TextToSpeech.QUEUE_ADD, null, UUID.randomUUID().toString())
+            engine.speak(item.text, TextToSpeech.QUEUE_ADD, null, item.id)
+        }
+    }
+
+    private fun listen(engine: TextToSpeech) {
+        engine.setOnUtteranceProgressListener(
+            object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {
+                }
+
+                override fun onDone(utteranceId: String?) {
+                    utteranceId ?: return
+                    if (queue.finish(utteranceId)) {
+                        abandonFocus(appContext)
+                    }
+                }
+
+                override fun onError(utteranceId: String?) {
+                    repeatOnce(utteranceId)
+                }
+
+                override fun onStop(utteranceId: String?, interrupted: Boolean) {
+                    repeatOnce(utteranceId)
+                }
+            },
+        )
+    }
+
+    private fun repeatOnce(utteranceId: String?) {
+        utteranceId ?: return
+        val again = queue.retry(utteranceId)
+        val app = appContext
+        if (again != null && app != null) {
+            scheduleFlush(app)
+        } else if (queue.isIdle()) {
+            abandonFocus(app)
+        }
+    }
+
+    private fun requestFocus(app: Context) {
+        if (focus != null) {
+            return
+        }
+        val manager = app.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build(),
+            )
+            .setOnAudioFocusChangeListener(::onFocusChange)
+            .build()
+        if (manager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            focus = request
+        }
+    }
+
+    private fun onFocusChange(change: Int) {
+        if (change != AudioManager.AUDIOFOCUS_LOSS) {
+            return
+        }
+        try {
+            tts?.stop()
+        } catch (_: Exception) {
+        }
+        abandonFocus(appContext)
+        var moved = false
+        for (id in queue.activeIds()) {
+            if (queue.retry(id) != null) {
+                moved = true
+            }
+        }
+        val app = appContext
+        if (moved && app != null) {
+            scheduleFlush(app)
+        }
+    }
+
+    private fun abandonFocus(app: Context?) {
+        val request = focus ?: return
+        focus = null
+        app ?: return
+        try {
+            (app.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
+                ?.abandonAudioFocusRequest(request)
+        } catch (_: Exception) {
         }
     }
 
@@ -145,9 +258,12 @@ object VoiceAnnouncer {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             action()
         } else {
-            Handler(Looper.getMainLooper()).post(action)
+            mainHandler().post(action)
         }
     }
 
+    private fun mainHandler(): Handler = Handler(Looper.getMainLooper())
+
     private const val MAX_UTTERANCE = 300
+    private const val DEFAULT_DELAY_MS = 1500
 }
