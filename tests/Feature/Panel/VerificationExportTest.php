@@ -144,6 +144,14 @@ class VerificationExportTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_export_as_guest_returns_unauthorized_json(): void
+    {
+        $response = $this->get('/api/panel/verifications/export?format=xlsx');
+
+        $response->assertStatus(401);
+        $response->assertJson(['message' => 'Unauthenticated.']);
+    }
+
     public function test_export_rejects_too_many_rows(): void
     {
         config()->set('payguard.exports.max_rows', 1);
