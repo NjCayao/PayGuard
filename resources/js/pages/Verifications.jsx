@@ -41,6 +41,7 @@ export default function Verifications() {
     const [meta, setMeta] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [exporting, setExporting] = useState(null);
 
     async function load(requestedPage = 1, requestedFilters = filters) {
         setLoading(true);
@@ -80,14 +81,38 @@ export default function Verifications() {
         load(1, emptyFilters);
     }
 
-    function exportUrl(format) {
-        const params = new URLSearchParams({ format });
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value !== '') {
-                params.append(key, value);
-            }
-        });
-        return `/api/panel/verifications/export?${params.toString()}`;
+    async function downloadExport(format) {
+        setExporting(format);
+        setError('');
+        try {
+            const params = { format };
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value !== '') {
+                    params[key] = value;
+                }
+            });
+            const response = await api.get('/verifications/export', {
+                params,
+                responseType: 'blob',
+            });
+            const match = (response.headers['content-disposition'] ?? '').match(
+                /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
+            );
+            const fallbackName = format === 'pdf' ? 'verificaciones.pdf' : 'verificaciones.xlsx';
+            const filename = match?.[1]?.replace(/['"]/g, '') || fallbackName;
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (downloadError) {
+            setError(errorMessage(downloadError, 'No se pudo descargar el archivo.'));
+        } finally {
+            setExporting(null);
+        }
     }
 
     const timeZone = user?.business?.timezone;
@@ -98,22 +123,22 @@ export default function Verifications() {
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <h1 className="text-xl font-bold text-slate-900">Verificaciones</h1>
                 <div className="flex gap-2">
-                    <a
-                        href={exportUrl('xlsx')}
+                    <button
+                        type="button"
+                        onClick={() => downloadExport('xlsx')}
+                        disabled={exporting !== null}
                         className={secondaryButtonClass}
-                        target="_blank"
-                        rel="noreferrer"
                     >
-                        Excel
-                    </a>
-                    <a
-                        href={exportUrl('pdf')}
+                        {exporting === 'xlsx' ? 'Descargando…' : 'Excel'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => downloadExport('pdf')}
+                        disabled={exporting !== null}
                         className={secondaryButtonClass}
-                        target="_blank"
-                        rel="noreferrer"
                     >
-                        PDF
-                    </a>
+                        {exporting === 'pdf' ? 'Descargando…' : 'PDF'}
+                    </button>
                 </div>
             </div>
 
