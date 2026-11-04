@@ -2,7 +2,18 @@
 
 WhatsApp assistant that verifies Yape payments for small businesses. A cashier forwards the customer's payment screenshot (or a voice note) and gets back **real** or **doesn't match** in seconds.
 
-> Demo video: [VIDEO_URL — coming in Sprint 8]
+**Demo video:** https://www.youtube.com/watch?v=y4IksPZ9qYU
+
+## Try it yourself
+
+No Yape account needed. Log in to the demo business and open **Probar PayGuard / Try PayGuard**:
+
+- **URL:** https://payguard.micaleth.com
+- **Email:** demo@payguard.com
+- **Password:** demo123
+- **Android app (APK):** https://payguard.micaleth.com/apk/payguard.apk
+
+Download the sample receipts on that page and upload them: the valid one is confirmed ✅, the same one again is flagged as reused, and the edited one (S/ 500) is rejected ❌. The demo account is read-only and resets every night.
 
 Built from scratch for the **Meta Global AI Developer Hackathon** (Oct 26 – Nov 4, 2026), Indie Developer track.
 
@@ -74,7 +85,7 @@ flowchart LR
 | Database | MySQL 8 · Queue: database driver + Supervisor |
 | Mobile app | Flutter (Android only), in `mobile/` |
 | WhatsApp | Official WhatsApp Cloud API (webhook) |
-| AI | Meta Model API (`https://api.meta.ai/v1`, OpenAI-compatible SDK) |
+| AI | Meta Model API (`https://api.meta.ai/v1`): Muse Spark for screenshots and queries, Muse Voice Transcribe at `/v1/asr/transcribe` |
 
 ## Local setup
 
@@ -106,6 +117,8 @@ META_MODEL_API_KEY=
 META_MODEL_BASE_URL=https://api.meta.ai/v1
 META_MODEL_VISION=muse-spark-1.3
 META_MODEL_TRANSCRIBE=muse-voice-transcribe-1.0
+META_MODEL_VISION_MAX_TOKENS=4000   # Muse Spark reasons before answering: keep this high
+META_MODEL_QUERY_MAX_TOKENS=4000
 
 # WhatsApp Cloud API
 WHATSAPP_TOKEN=
@@ -122,7 +135,7 @@ TURNSTILE_SECRET_KEY=
 PAYGUARD_MATCH_WINDOW_MINUTES=10
 PAYGUARD_RECHECK_MINUTES=2
 PAYGUARD_QUERY_WINDOW_MINUTES=10
-PAYGUARD_DEVICE_OFFLINE_MINUTES=10
+PAYGUARD_DEVICE_OFFLINE_MINUTES=30
 ```
 
 ## Project layout
